@@ -1,30 +1,36 @@
 #-*-coding:utf-8-*-
+import typing
+from   typing import *
 
 import os
 import sys
 
+required_version = (3,8)
+if sys.version_info < required_version:
+    sys.stderr.write(f"This program requires Python {required_version} or later")
+    sys.exit(os.EX_SOFTWARE)
+
 ###
 # Credits
 ###
-__author__     = 'George Flanagin'
-__copyright__  = 'Copyright 2021, University of Richmond'
-__credits__    = 'https://github.com/wong2/pick'
-__version__    = 2.0
-__maintainer__ = 'George Flanagin'
-__email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
-__status__ = 'Teaching example'
-__license__ = 'MIT'
+__author__      = 'George Flanagin'
+__copyright__   = 'Copyright 2021, University of Richmond'
+__credits__     = 'https://github.com/wong2/pick'
+__version__     = 2.0
+__maintainer__  = 'George Flanagin'
+__email__       = 'gflanagin@richmond.edu'
+__status__      = 'Early production'
+__license__     = 'MIT'
 
 import curses
-
-__all__ = ['Picker', 'pick']
 
 KEYS_ENTER = (curses.KEY_ENTER, ord('\n'), ord('\r'))
 KEYS_UP = (curses.KEY_UP, ord('k'))
 KEYS_DOWN = (curses.KEY_DOWN, ord('j'))
 KEYS_SELECT = (curses.KEY_RIGHT, ord(' '))
 
-def foo_null(o:object) -> object:
+
+def _foo_null(o:object) -> object:
     return object
 
 
@@ -40,10 +46,10 @@ class Picker:
         'options_map_func':'a function to apply to all selection text. Can be None',
         'all_selected':"the user's choices.",
         'index':"the current location of the selector in the list of options.",
-        'custom_handlers':"
+        'custom_handlers':"List of registered custom handlers."
         }
 
-    __values__ = (tuple(), "", "*", 0, False, 0, foo_null, [])
+    __values__ = (tuple(), "", "*", 0, False, 0, _foo_null, [], -1, {})
     __defaults__ = dict(zip(__slots__, __values__))
 
     def __init__(self, **kwargs):
@@ -62,101 +68,75 @@ class Picker:
         self.min_selection_count = min(self.min_selection_count, len(self.options))
         if not callable(self.options_map_func): 
             raise Exception(f"{self.options_map_func=} is not callable.")
-          
+        self.title += "\n"
 
-    def __init__(self, options, 
-        title=None, 
-        indicator='*', 
-        default_index=0, 
-        multiselect=False, multi_select=False, min_selection_count=0, options_map_func=None):
 
-        if len(options) == 0:
-            raise ValueError('options should not be an empty list')
+    def init_handlers(self):
+        pass
 
-        self.options = options
-        self.title = title
-        self.indicator = indicator
-        self.multiselect = multiselect or multi_select
-        self.min_selection_count = min_selection_count
-        self.options_map_func = options_map_func
-        self.all_selected = []
+    def register_custom_handler(self, key, func) -> None:
 
-        if default_index >= len(options):
-            raise ValueError('default_index should be less than the length of options')
-
-        if multiselect and min_selection_count > len(options):
-            raise ValueError('min_selection_count is bigger than the available options, you will not be able to make any selection')
-
-        if options_map_func is not None and not callable(options_map_func):
-            raise ValueError('options_map_func must be a callable function')
-
-        self.index = default_index
-        self.custom_handlers = {}
-
-    def register_custom_handler(self, key, func):
+        if not callable(func):
+            raise Exception(f"{func} is not callable.")
         self.custom_handlers[key] = func
 
-    def move_up(self):
+
+    def move_up(self) -> None:
+        """
+        This function will wrap around.
+        """
         self.index -= 1
         if self.index < 0:
             self.index = len(self.options) - 1
 
-    def move_down(self):
+
+    def move_down(self) -> None:
         self.index += 1
-        if self.index >= len(self.options):
+        if self.index  > len(self.options):
             self.index = 0
 
-    def mark_index(self):
+
+    def mark_index(self) -> None:
         if self.multiselect:
             if self.index in self.all_selected:
                 self.all_selected.remove(self.index)
             else:
                 self.all_selected.append(self.index)
 
-    def get_selected(self):
-        """return the current selected option as a tuple: (option, index)
+
+    def get_selected(self) -> Union[tuple, list]:
+        """
+            return the current selected option as a tuple: (option, index)
            or as a list of tuples (in case multiselect==True)
         """
-        if self.multiselect:
-            return_tuples = []
-            for selected in self.all_selected:
-                return_tuples.append((self.options[selected], selected))
-            return return_tuples
-        else:
-            return self.options[self.index], self.index
+        tuples = [ (self.options[_], _) for _ in self.all_selected ]
+        return tuples if self.multiselect else tuples[0]
 
-    def get_title_lines(self):
-        if self.title:
-            return self.title.split('\n') + ['']
-        return []
 
-    def get_option_lines(self):
+    def get_title_lines(self) -> List[str]:
+        return self.title.split('\n')
+
+
+    def get_option_lines(self) -> List[str]:
         lines = []
         for index, option in enumerate(self.options):
-            # pass the option through the options map of one was passed in
-            if self.options_map_func:
-                option = self.options_map_func(option)
-
-            if index == self.index:
-                prefix = self.indicator
-            else:
-                prefix = len(self.indicator) * ' '
+            option = self.options_map_func(option)
+            prefix = self.indicator if self.index else len(self.indicator) * ' '
+            color_format = curses.color_pair(1)
 
             if self.multiselect and index in self.all_selected:
-                format = curses.color_pair(1)
-                line = ('{0} {1}'.format(prefix, option), format)
+                line = (f'{prefix} {option}', color_format)
             else:
-                line = '{0} {1}'.format(prefix, option)
+                line = f'{prefix} {option}'
             lines.append(line)
 
         return lines
 
+
     def get_lines(self):
-        title_lines = self.get_title_lines()
-        option_lines = self.get_option_lines()
-        lines = title_lines + option_lines
-        current_line = self.index + len(title_lines) + 1
-        return lines, current_line
+        return ( self.get_title_lines() + self.get_option_lines(), 
+                 self.index + len(title_lines) + 1 )
+
 
     def draw(self):
         """draw the curses ui on the screen, handle scroll if needed"""
@@ -187,7 +167,9 @@ class Picker:
 
         self.screen.refresh()
 
+
     def run_loop(self):
+
         while True:
             self.draw()
             c = self.screen.getch()
