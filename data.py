@@ -37,7 +37,6 @@ mynetid = getpass.getuser()
 max_hours = 72
 
 def hours_to_hms(h:float) -> str:
-    h=float(h)
     
     days = int(h / 24)
     h -= days * 24
