@@ -11,6 +11,7 @@ from   typing import *
 ###
 
 import os
+import os.path
 import sys
 
 try:
@@ -43,6 +44,8 @@ mynetid = getpass.getuser()
 
 max_hours = 72
 
+
+
 def hours_to_hms(h:float) -> str:
     
     days = int(h / 24)
@@ -58,8 +61,11 @@ def hours_to_hms(h:float) -> str:
         f"{days}-{hours:02}:{minutes:02}:{seconds:02}" )
 
 
-def time_check(s:str) -> bool:
-    return True if dateparser.parse(s) else False
+def time_check(s:str, return_str:bool=False) -> bool:
+    if return_str:
+        return datetime.datetime.isoformat(dateparser.parse("now"))[:16]
+    else:
+        return True if dateparser.parse(s) else False
     
 
 community_partitions_compute = ('basic', 'medium', 'large')
@@ -128,7 +134,7 @@ dialog.jobname.prompt = lambda : "Name of your job"
 dialog.jobname.datatype = str
 
 dialog.output.prompt = lambda : "Name of your job's output file"
-dialog.output.default = lambda : f"{dialog.jobname.answer}.txt"
+dialog.output.default = lambda : f"{os.getenv('HOME')}/{dialog.jobname.answer}.txt"
 dialog.output.datatype = str
 
 dialog.program.prompt = lambda : "What program do you want to run"
@@ -148,20 +154,22 @@ dialog.account.datatype = str
 dialog.datadir.prompt = lambda : "Where is your input data directory"
 dialog.datadir.default = lambda : f"{os.getenv('HOME')}"
 dialog.datadir.datatype = str
+dialog.datadir.choices = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
 
 dialog.scratchdir.prompt = lambda : "Where is your scratch directory"
 dialog.scratchdir.default = lambda : f"/scratch/{mynetid}"
 dialog.scratchdir.datatype = str
+dialog.scratchdir.choices = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
 
 dialog.mem.prompt = lambda : "How much memory (in GB)"
 dialog.mem.default = lambda : 16
 dialog.mem.datatype = int
-dialog.mem.choices = lambda x : 1 < x < partitions[dialog.partition.answer].ram - 20, 
+dialog.mem.choices = lambda x : 1 < x < partitions[dialog.partition.answer].ram - 7, 
 
 dialog.cores.prompt = lambda : "How many cores"
 dialog.cores.default = lambda : 8
 dialog.cores.datatype = int
-dialog.cores.choices = lambda x : 0 < x < 51,
+dialog.cores.choices = lambda x : 0 < x < partitions[dialog.partition.answer].cores - 1,
 
 dialog.time.prompt = lambda : "How long should this run (in hours)"
 dialog.time.default = lambda : 1
@@ -172,9 +180,10 @@ dialog.time.reformat = lambda x : hours_to_hms(x)
 dialog.start.prompt = lambda : "When do you want the job to run"
 dialog.start.default = lambda : "now"
 dialog.start.datatype = str
-dialog.start.choices = lambda x : x in ('now', 'today', 'tomorrow', 'midnight', 'noon', 'teatime') or time_check(x),
+dialog.start.choices = lambda x : x in ('now', 'today', 'tomorrow') or time_check(x),
+dialog.start.reformat = lambda x : time_check(x, True)
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
-dialog.jobfile.default = lambda : f"{os.getenv('HOME')}/{dialog.jobname.answer}.slurm"
+dialog.jobfile.default = lambda : f"{os.getenv('PWD')}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
-
+dialog.jobfile.choices = lambda x : os.access(os.path.dirname(x), os.W_OK),
