@@ -51,6 +51,9 @@ def hours_to_hms(h:float) -> str:
         f"{days}-{hours:02}:{minutes:02}:{seconds:02}" )
 
 
+def time_check(s:str) -> bool:
+    return True
+    
 
 community_partitions_compute = ('basic', 'medium', 'large')
 community_partitions_gpu = ('ML', 'sci')
@@ -158,6 +161,11 @@ dialog.time.default = lambda : 1
 dialog.time.datatype = float
 dialog.time.choices = lambda x : x < max_hours,
 dialog.time.reformat = lambda x : hours_to_hms(x)
+
+dialog.time.prompt = lambda : "When do you want the job to run"
+dialog.time.default = lambda : "now"
+dialog.time.datatype = str
+dialog.time.choices = lambda x : x in ('now', 'today', 'tomorrow', 'midnight', 'noon', 'teatime') or time_check(x),
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
 dialog.jobfile.default = lambda : f"{os.getenv('HOME')}/{dialog.jobname.answer}.slurm"

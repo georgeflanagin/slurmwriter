@@ -20,6 +20,7 @@ if sys.version_info < min_py:
     print(f"This program requires Python {min_py[0]}.{min_py[1]}, or higher.")
     sys.exit(os.EX_SOFTWARE)
 
+import math
 
 # Credits
 __author__ = 'George Flanagin'

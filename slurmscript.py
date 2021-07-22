@@ -4,6 +4,8 @@ job processor. The template is a lambda function so that
 evaluation is delayed until runtime.
 """
 
+import math
+
 # Credits
 __author__ = 'George Flanagin'
 __copyright__ = 'Copyright 2021'
