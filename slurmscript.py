@@ -1,3 +1,19 @@
+"""
+This file contains the template for the scripts for the SLURM 
+job processor. The template is a lambda function so that 
+evaluation is delayed until runtime.
+"""
+
+# Credits
+__author__ = 'George Flanagin'
+__copyright__ = 'Copyright 2021'
+__credits__ = None
+__version__ = str(math.pi**2)[:5]
+__maintainer__ = 'George Flanagin'
+__email__ = ['me+ur@georgeflanagin.com', 'gflanagin@richmond.edu']
+__status__ = 'Teaching example'
+__license__ = 'MIT'
+
 slurmscript = lambda info : f"""#!/bin/bash
 
 ###
@@ -62,38 +78,6 @@ mkdir -p $SCRATCH
 
 rm -rf $SCRATCH
 
-"""
+echo "Finished at `date`"
 
-# """
-# #!/bin/csh
-# 
-# #SBATCH --job-name=SiPOS_S1
-# #SBATCH --output=SiPOS_S1.txt
-# #SBATCH --partition=gpu
-# #SBATCH --gres=gpu:rtx2080ti:1
-# #SBATCH --ntasks=1
-# #SBATCH --time=00:00:00
-# 
-# Print the simulation start date/time
-# date
-# 
-# Print the GPU node the simulation is running on
-# echo "I ran on:"
-# cd $SLURM_SUBMIT_DIR
-# echo $SLURM_NODELIST
-# 
-# Load the necessary program libraries
-# module load amber/20
-# 
-# Set the output file directory
-# cd /work/ja9ia/Si_POSS/PM6/MethoxyIndene/S1
-# 
-# Run Amber Jobs
-# ./min.sh
-# ./heat.sh
-# ./eq.sh
-# ./md.sh
-# 
-# Print the simulation end date/time
-# date
-# """
+"""

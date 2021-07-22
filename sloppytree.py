@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+SloppyTree is derived from Python's dict object. It allows
+one to create an n-ary tree of arbitrary complexity whose
+members may be accessed by the methods in dict or the object.member
+syntax, depending on the usefulness of either expression. 
+"""
+
+
 import typing
 from   typing import *
 
@@ -10,11 +18,11 @@ import sys
 
 # Credits
 __author__ = 'George Flanagin'
-__copyright__ = 'Copyright 2020'
+__copyright__ = 'Copyright 2021'
 __credits__ = None
-__version__ = str(1/math.pi)
+__version__ = str(math.pi**2)[:5]
 __maintainer__ = 'George Flanagin'
-__email__ = ['me@georgeflanagin.com', 'gflanagin@richmond.edu']
+__email__ = ['me+ur@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 __license__ = 'MIT'
 
@@ -66,31 +74,36 @@ class SloppyTree(dict):
         return self
 
 
-    def _leaves(self) -> str:
+    def leaves(self) -> str:
         """
         Walk the leaves only, left to right.
         """ 
         for k, v in self.items():
             if isinstance(v, dict):
-                yield from self._leaves(v)
+                yield from v.leaves()
             else:
                 yield v
 
 
-    def _walk(self, level=0) -> Tuple[str, int]:
+    def traverse(self) -> Tuple[str, int]:
         """
         Emit all the nodes of a tree left-to-right and top-to-bottom.
         The bool is included so that you can know whether you have reached
         a leaf. (NOTE: dict.__iter__ only sees keys.)
+
+        returns -- a tuple with the value of the node, and 1 => key, and 0 => leaf.
+
+        Usage:
+            for node, indicator in mytree.traverse():
+                ....
         """
+
         for k, v in self.items():
-            level += 1
-            yield k, level
+            yield k, 1
             if isinstance(v, dict):
-                yield from self._walk(level)
-                level -= 1
+                yield from v.traverse()
             else:
-                yield v, None
+                yield v, 0
 
 
     def __str__(self) -> str:
