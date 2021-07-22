@@ -37,6 +37,7 @@ mynetid = getpass.getuser()
 max_hours = 72
 
 def hours_to_hms(h:float) -> str:
+    h=float(h)
     
     days = int(h / 24)
     h -= days * 24
@@ -162,10 +163,10 @@ dialog.time.datatype = float
 dialog.time.choices = lambda x : x < max_hours,
 dialog.time.reformat = lambda x : hours_to_hms(x)
 
-dialog.time.prompt = lambda : "When do you want the job to run"
-dialog.time.default = lambda : "now"
-dialog.time.datatype = str
-dialog.time.choices = lambda x : x in ('now', 'today', 'tomorrow', 'midnight', 'noon', 'teatime') or time_check(x),
+dialog.start.prompt = lambda : "When do you want the job to run"
+dialog.start.default = lambda : "now"
+dialog.start.datatype = str
+dialog.start.choices = lambda x : x in ('now', 'today', 'tomorrow', 'midnight', 'noon', 'teatime') or time_check(x),
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
 dialog.jobfile.default = lambda : f"{os.getenv('HOME')}/{dialog.jobname.answer}.slurm"
