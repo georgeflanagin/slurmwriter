@@ -184,6 +184,6 @@ dialog.start.choices = lambda x : x in ('now', 'today', 'tomorrow') or time_chec
 dialog.start.reformat = lambda x : time_check(x, True)
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
-dialog.jobfile.default = lambda : f"{os.getenv('PWD')}/{dialog.jobname.answer}.slurm"
+dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
 dialog.jobfile.choices = lambda x : os.access(os.path.dirname(x), os.W_OK),
