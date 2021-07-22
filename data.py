@@ -13,6 +13,13 @@ from   typing import *
 import os
 import sys
 
+try:
+    import dateparser
+except ImportError as e:
+    print("This program requires dateparser.")
+    sys.exit(os.EX_SOFTWARE)
+
+import datetime
 import getpass
 import time
 
@@ -52,7 +59,7 @@ def hours_to_hms(h:float) -> str:
 
 
 def time_check(s:str) -> bool:
-    return True
+    return True if dateparser.parse(s) else False
     
 
 community_partitions_compute = ('basic', 'medium', 'large')

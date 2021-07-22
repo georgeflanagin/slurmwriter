@@ -25,6 +25,7 @@ slurmscript = lambda info : f"""#!/bin/bash
 ###
 
 #SBATCH --account={info.account.answer}
+#SBATCH --begin={info.start.answer}
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user={info.username.answer}@richmond.edu
 #SBATCH --mem={info.mem.answer}GB
