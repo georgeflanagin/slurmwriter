@@ -52,7 +52,7 @@ def mygroups() -> Tuple[str]:
     
     groups = [g.gr_name for g in grp.getgrall() if mynetid in g.gr_mem]
     primary_group = pwd.getpwnam(mynetid).pw_gid
-    groups.append(grp.getgrgid(gid).gr_name)
+    groups.append(grp.getgrgid(primary_group).gr_name)
     return tuple(groups)
     
 
@@ -73,7 +73,7 @@ def hours_to_hms(h:float) -> str:
 
 def time_check(s:str, return_str:bool=False) -> bool:
     if return_str:
-        return datetime.datetime.isoformat(dateparser.parse("now"))[:16]
+        return datetime.datetime.isoformat(dateparser.parse(s))[:16]
     else:
         return True if dateparser.parse(s) else False
     
@@ -139,7 +139,7 @@ programs.gaussian.partition_choices = ('parish',) + community_partitions_compute
 dialog = SloppyTree()
 
 dialog.username.answer = mynetid
-dialog.username.groups = mygroups 
+dialog.username.groups = mygroups() 
 
 dialog.jobname.prompt = lambda : "Name of your job"
 dialog.jobname.datatype = str
@@ -161,6 +161,7 @@ dialog.partition.choices = lambda x : x in partitions.keys(),
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
 dialog.account.default = lambda : f"users"
 dialog.account.datatype = str
+dialog.partition.choices = lambda x : x in dialog.username.groups,
 
 dialog.datadir.prompt = lambda : "Where is your input data directory"
 dialog.datadir.default = lambda : f"{os.getenv('HOME')}"

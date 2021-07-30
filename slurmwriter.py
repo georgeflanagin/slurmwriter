@@ -79,7 +79,8 @@ def format_prompt(t:SloppyTree) -> str:
 def get_answers(t:SloppyTree) -> SloppyTree:
     """
     Walk the nodes of the tree to collect information
-    from the user, interactively.
+    from the user, interactively. Perform checks for
+    each input if any checks exist.
     """
     for k in t:
         # Ensure this is a user-prompt element of t.
@@ -101,9 +102,19 @@ def get_answers(t:SloppyTree) -> SloppyTree:
                 complete = True
 
             # Step 2: Check the constraints.
+
+            print(f"{str(t[k].choices)=}")
+            print(f"{x=}")
+            
+            ###
+            # Explanation for the following statement:
+            #   complete if ( if we passed the type check AND
+            #    there are choices to consider OR
+            #    all choice functions return true )
+            ###
             complete = ( complete and 
-                'choices' not in t[k] or 
-                all (choice(x) for choice in t[k].choices))
+                'choices' not in t[k] or all (choice(x) for choice in t[k].choices)
+                )
             if not complete:
                 print(f"Your answer, {x}, is outside the range of allowed values.")    
 
