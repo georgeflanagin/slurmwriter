@@ -34,6 +34,7 @@ __license__ = 'MIT'
 
 import argparse
 import getpass
+import inspect
 
 ###
 # Parts of this project.
@@ -60,6 +61,18 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
 
 
 @trap
+def dump_lambdas(o:Any) -> None:
+    """
+    Print the text of the otherwise invisible lambdas.
+    """
+    LAMBDA = lambda:0
+    if not isinstance(o, Iterable): o = o, 
+    for i, it in enumerate(o):
+        if isinstance(it, type(LAMBDA)) and it.__name__ == LAMBDA.__name__:
+            print(f"{i}: {inspect.getsource(it)=}")
+    
+
+@trap
 def format_prompt(t:SloppyTree) -> str:
     """
     Based on the prompt string and optional default value
@@ -76,7 +89,7 @@ def format_prompt(t:SloppyTree) -> str:
 
 
 @trap
-def get_answers(t:SloppyTree) -> SloppyTree:
+def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
     """
     Walk the nodes of the tree to collect information
     from the user, interactively. Perform checks for
@@ -103,8 +116,7 @@ def get_answers(t:SloppyTree) -> SloppyTree:
 
             # Step 2: Check the constraints.
 
-            print(f"{str(t[k].choices)=}")
-            print(f"{x=}")
+            myargs.debug and dump_lambdas(t[k].choices)
             
             ###
             # Explanation for the following statement:
@@ -144,7 +156,7 @@ def slurmwriter_main(myargs:argparse.Namespace) -> int:
     print(f"{__doc__}")
 
     info = SloppyTree()
-    info = get_answers(dialog)
+    info = get_answers(dialog, myargs)
     if not review_answers(info): 
         print("OK. Try again.")
         sys.exit(os.EX_DATAERR)
@@ -169,6 +181,8 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(prog="slurmwriter", 
         description="A program to help newbies write SLURM jobs on Spydur.")
+
+    parser.add_argument('--debug', action='store_true')
 
     myargs = parser.parse_args()
     dump_cmdline(myargs)

@@ -71,7 +71,14 @@ def hours_to_hms(h:float) -> str:
         f"{days}-{hours:02}:{minutes:02}:{seconds:02}" )
 
 
-def time_check(s:str, return_str:bool=False) -> bool:
+def time_check(s:str, return_str:bool=False) -> Union[str, bool]:
+    """
+    This function either checks or formats the time.
+
+    s -- some string thought to represent a time of day.
+    return_str -- a flag, that when True returns the parsed and formatted time.
+        If this flag is False, then we just check if the time is valid.
+    """
     if return_str:
         return datetime.datetime.isoformat(dateparser.parse(s))[:16]
     else:
@@ -161,7 +168,7 @@ dialog.partition.choices = lambda x : x in partitions.keys(),
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
 dialog.account.default = lambda : f"users"
 dialog.account.datatype = str
-dialog.partition.choices = lambda x : x in dialog.username.groups,
+dialog.account.choices = lambda x : x in dialog.username.groups,
 
 dialog.datadir.prompt = lambda : "Where is your input data directory"
 dialog.datadir.default = lambda : f"{os.getenv('HOME')}"
@@ -169,9 +176,13 @@ dialog.datadir.datatype = str
 dialog.datadir.choices = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
 
 dialog.scratchdir.prompt = lambda : "Where is your scratch directory"
-dialog.scratchdir.default = lambda : f"/scratch/{mynetid}"
+dialog.scratchdir.default = lambda : f"{os.getenv('HOME')}/scratch"
 dialog.scratchdir.datatype = str
-dialog.scratchdir.choices = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
+dialog.scratchdir.choices = (
+    lambda x: os.makedirs(x, mode=0o750, exist_ok=True), 
+    lambda x : os.path.exists(x), 
+    lambda x : os.access(x, os.RW_OK) 
+    )
 
 dialog.mem.prompt = lambda : "How much memory (in GB)"
 dialog.mem.default = lambda : 16
