@@ -41,7 +41,7 @@ import inspect
 ###
 
 from   gkfdecorators import trap
-from   data import dialog
+from   rules import dialog
 from   sloppytree import SloppyTree
 from   slurmscript import slurmscript
 
