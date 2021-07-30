@@ -22,6 +22,8 @@ except ImportError as e:
 
 import datetime
 import getpass
+import grp
+import pwd
 import time
 
 ###
@@ -45,6 +47,14 @@ mynetid = getpass.getuser()
 max_hours = 72
 
 
+def mygroups() -> Tuple[str]:
+    global mynetid
+    
+    groups = [g.gr_name for g in grp.getgrall() if mynetid in g.gr_mem]
+    primary_group = pwd.getpwnam(mynetid).pw_gid
+    groups.append(grp.getgrgid(gid).gr_name)
+    return tuple(groups)
+    
 
 def hours_to_hms(h:float) -> str:
     
@@ -129,6 +139,7 @@ programs.gaussian.partition_choices = ('parish',) + community_partitions_compute
 dialog = SloppyTree()
 
 dialog.username.answer = mynetid
+dialog.username.groups = mygroups 
 
 dialog.jobname.prompt = lambda : "Name of your job"
 dialog.jobname.datatype = str
@@ -148,7 +159,7 @@ dialog.partition.datatype = str
 dialog.partition.choices = lambda x : x in partitions.keys(),
 
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
-dialog.account.default = lambda : f"ur-community"
+dialog.account.default = lambda : f"users"
 dialog.account.datatype = str
 
 dialog.datadir.prompt = lambda : "Where is your input data directory"

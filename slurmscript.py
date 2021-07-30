@@ -29,8 +29,8 @@ slurmscript = lambda info : f"""#!/bin/bash
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user={info.username.answer}@richmond.edu
 #SBATCH --mem={info.mem.answer}GB
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node={info.cores.answer}
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={info.cores.answer}
 #SBATCH --partition={info.partition.answer}
 #SBATCH --time={info.time.answer}
 

@@ -74,6 +74,17 @@ class SloppyTree(dict):
         return self
 
 
+    def __len__(self) -> int:
+        """
+        return the number of paths from the root node to the leaves,
+        or if you think of it this way, the number of branches.
+        """
+        i = 0
+        for _ in self.leaves():
+            i += 1
+        return i
+
+
     def leaves(self) -> str:
         """
         Walk the leaves only, left to right.
