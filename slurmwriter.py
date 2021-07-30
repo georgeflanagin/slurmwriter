@@ -185,7 +185,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
 
     myargs = parser.parse_args()
-    dump_cmdline(myargs)
+    # dump_cmdline(myargs)
 
     try:
         sys.exit(slurmwriter_main(myargs))

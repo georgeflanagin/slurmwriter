@@ -179,9 +179,9 @@ dialog.scratchdir.prompt = lambda : "Where is your scratch directory"
 dialog.scratchdir.default = lambda : f"{os.getenv('HOME')}/scratch"
 dialog.scratchdir.datatype = str
 dialog.scratchdir.choices = (
-    lambda x: os.makedirs(x, mode=0o750, exist_ok=True), 
+    lambda x: os.makedirs(x, mode=0o750, exist_ok=True) or True, 
     lambda x : os.path.exists(x), 
-    lambda x : os.access(x, os.RW_OK) 
+    lambda x : os.access(x, os.R_OK|os.W_OK) 
     )
 
 dialog.mem.prompt = lambda : "How much memory (in GB)"
