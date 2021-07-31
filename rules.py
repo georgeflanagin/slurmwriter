@@ -105,7 +105,6 @@ partitions.sci.ram=384
 partitions.sci.gpu.type="A40"
 partitions.sci.gpu.count=8
 
-
 partitions.bukach.ram=384
 partitions.diaz.ram=1536
 partitions.erickson.ram=768

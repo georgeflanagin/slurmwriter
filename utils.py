@@ -18,6 +18,8 @@ if sys.version_info < min_py:
     print(f"This program requires Python {min_py[0]}.{min_py[1]}, or higher.")
     sys.exit(os.EX_SOFTWARE)
 
+import stat
+
 import math
 import subprocess
 
@@ -96,3 +98,8 @@ def dorunrun(command:Union[str, list],
     except Exception as e:
         raise Exception(f"Unexpected error: {str(e)}")
 
+
+def script_driven() -> bool:
+
+    mode = os.fstat(0).st_mode
+    return True if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else False

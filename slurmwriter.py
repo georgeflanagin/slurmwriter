@@ -44,6 +44,14 @@ from   gkfdecorators import trap
 from   rules import dialog
 from   sloppytree import SloppyTree
 from   slurmscript import slurmscript
+import utils
+
+###
+# Useful constants.
+###
+
+LAMBDA = lambda:0
+OCTOTHORPE = '#'
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -60,7 +68,6 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     return opt_string if return_it else ""
 
 
-LAMBDA = lambda:0
 @trap
 def dump_lambdas(o:Any) -> None:
     """
@@ -102,8 +109,8 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
 
         complete = False
         while not complete:
-            # Step 1: Convert the user's response to the right type.
-            x = input(format_prompt(t[k])) 
+            # Convert the user's response to the right type.
+            x = scrub_input(format_prompt(t[k])) 
             x = x if x else t[k].default()
             try:
                 x = t[k].datatype(x)
@@ -133,12 +140,13 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
                 )
 
             ###
-            # See if there is a message-rule to help the user get it right.
+            # Execute the message-rules to help the user get it right next time.
+            ###
             if not complete:
                 for message in t[k].messages: message(x)
                 continue
 
-            # Step 3: Check for reformatting (mainly the case for timestamps)
+            # Check for reformatting (mainly the case for timestamps)
             if 'reformat' in t[k]:
                 x = t[k].reformat(x)
             
@@ -157,6 +165,13 @@ def review_answers(t:SloppyTree) -> bool:
     return truthy(input("\nThese are the answers you provided. Are they OK? [y] : "))
     
 
+def scrub_input(prompt_text:str) -> str:
+    """
+    Like input, but ditches everything after the octothorpe.
+    """
+    return input(prompt_text).split(OCTOTHORPE)[0].strip()
+ 
+
 def truthy(text:str) -> bool:
     """
     Deal with all the various ways people represent the truth.
@@ -168,11 +183,13 @@ def truthy(text:str) -> bool:
 def slurmwriter_main(myargs:argparse.Namespace) -> int:
     global dialog
 
+    redirected_input = utils.script_driven()
+
     print(f"{__doc__}")
 
     info = SloppyTree()
     info = get_answers(dialog, myargs)
-    if not review_answers(info): 
+    if not redirected_input not review_answers(info): 
         print("OK. Try again.")
         sys.exit(os.EX_DATAERR)
 
