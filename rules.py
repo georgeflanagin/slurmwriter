@@ -1,35 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the data to drive the slurmwriter.
+This file contains the data to drive the slurmwriter through the
+rules written as navigable branches of the SloppyTree.
 """
-
 import typing
 from   typing import *
 
 ###
 # Standard imports.
 ###
-
 import os
 import os.path
 import sys
-
-try:
-    import dateparser
-except ImportError as e:
-    print("This program requires dateparser.")
-    sys.exit(os.EX_SOFTWARE)
 
 import datetime
 import getpass
 import grp
 import pwd
 import time
+# Putting this import first, we can run pip if we need any of the
+# packages named in the try-block.
+import utils
+
+try:
+    import dateparser
+except ImportError as e:
+    print("This program requires dateparser.")
+    if utils.dorunrun('pip3 install dateparser --user'):
+        import dateparser
+    else:
+        sys.exit(os.EX_SOFTWARE)
 
 ###
-# Parts of this project.
+# Other parts of this project.
 ###
-
 from   sloppytree import SloppyTree
 
 ###
@@ -39,12 +43,9 @@ from   sloppytree import SloppyTree
 mynetid = getpass.getuser()
 
 ###
-# These are limits and constraints for some of the boundary checking
+# These are function to support the boundary checking
 # when we collect data from the user. 
 ###
-
-
-
 def mygroups() -> Tuple[str]:
     global mynetid
     
@@ -82,6 +83,9 @@ def time_check(s:str, return_str:bool=False) -> Union[str, bool]:
     else:
         return True if dateparser.parse(s) else False
     
+
+limits = SloppyTree()
+limits.max_hours = 96
 
 community_partitions_compute = ('basic', 'medium', 'large')
 community_partitions_gpu = ('ML', 'sci')
@@ -124,8 +128,6 @@ programs.gaussian.desc="electronic structure modeling"
 programs.gaussian.modules = 'gaussian',
 programs.gaussian.partition_choices = ('parish',) + community_partitions_compute
 
-
-
 ###
 # Each of the trees is a decision tree for the user. Some notes about the
 # elements.
@@ -142,7 +144,6 @@ programs.gaussian.partition_choices = ('parish',) + community_partitions_compute
 ###
 
 dialog = SloppyTree()
-dialog.max_hours = 72
 
 dialog.username.answer = mynetid
 dialog.username.groups = mygroups() 
@@ -196,7 +197,7 @@ dialog.cores.constraints = lambda x : 0 < x < partitions[dialog.partition.answer
 dialog.time.prompt = lambda : "How long should this run (in hours)"
 dialog.time.default = lambda : 1
 dialog.time.datatype = float
-dialog.time.constraints = lambda x : x < dialog.max_hours,
+dialog.time.constraints = lambda x : x < limits.max_hours,
 dialog.time.reformat = lambda x : hours_to_hms(x)
 
 dialog.start.prompt = lambda : "When do you want the job to run"
@@ -209,3 +210,9 @@ dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
 dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
 dialog.jobfile.constraints = lambda x : os.access(os.path.dirname(x), os.W_OK),
+
+# This is the catch all message if we cannot tell the user something
+# more specific.
+for k in ( _ for _ in dialog if 'prompt' in _):
+    if 'messages' not in dialog[k]:
+        dialog[k].messages = lambda x : f"The value you supplied, {x}, doesn't work.",

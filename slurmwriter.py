@@ -95,10 +95,10 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
     from the user, interactively. Perform checks for
     each input if any checks exist.
     """
-    for k in t:
-        # Ensure this is a user-prompt element of t. Other data in
-        # t have no prompt element. 
-        if 'prompt' not in t[k]: continue
+
+    # Ensure this is a user-prompt element of t. Other data in
+    # t have no prompt element. 
+    for k in ( _ for _ in t if 'prompt' in t[_]):
 
         complete = False
         while not complete:
@@ -135,12 +135,7 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
             ###
             # See if there is a message-rule to help the user get it right.
             if not complete:
-                if not 'messages' in t[k]:
-                    print(f"Your answer, {x}, is outside the range of allowed values.")  
-                else:
-                    for message in t[k].messages: message()
-
-                # Try again, in any case.
+                for message in t[k].messages: message(x)
                 continue
 
             # Step 3: Check for reformatting (mainly the case for timestamps)
