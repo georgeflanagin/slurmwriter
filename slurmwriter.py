@@ -60,12 +60,12 @@ def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
     return opt_string if return_it else ""
 
 
+LAMBDA = lambda:0
 @trap
 def dump_lambdas(o:Any) -> None:
     """
     Print the text of the otherwise invisible lambdas.
     """
-    LAMBDA = lambda:0
     if not isinstance(o, Iterable): o = o, 
     for i, it in enumerate(o):
         if isinstance(it, type(LAMBDA)) and it.__name__ == LAMBDA.__name__:
@@ -96,7 +96,8 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
     each input if any checks exist.
     """
     for k in t:
-        # Ensure this is a user-prompt element of t.
+        # Ensure this is a user-prompt element of t. Other data in
+        # t have no prompt element. 
         if 'prompt' not in t[k]: continue
 
         complete = False
@@ -108,38 +109,50 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
                 x = t[k].datatype(x)
                 complete = True
 
+            # Not convertable to the give type.
             except ValueError as e:
                 print(f"Woops! {x} should be of type {t[k].datatype}")
-
+                continue
+                
+            # No type coercion rule present.
             except KeyError as e:
                 complete = True
 
             # Step 2: Check the constraints.
 
-            myargs.debug and dump_lambdas(t[k].choices)
+            myargs.debug and dump_lambdas(t[k].constraints)
             
             ###
             # Explanation for the following statement:
             #   complete if ( if we passed the type check AND
-            #    there are choices to consider OR
+            #    there are *no* constraints to consider OR
             #    all choice functions return true )
             ###
             complete = ( complete and 
-                'choices' not in t[k] or all (choice(x) for choice in t[k].choices)
+                'constraints' not in t[k] or all (constraint(x) for constraint in t[k].constraints)
                 )
-            if not complete:
-                print(f"Your answer, {x}, is outside the range of allowed values.")    
 
-            # Step 3: Check for reformatting.
+            ###
+            # See if there is a message-rule to help the user get it right.
+            if not complete:
+                if not 'messages' in t[k]:
+                    print(f"Your answer, {x}, is outside the range of allowed values.")  
+                else:
+                    for message in t[k].messages: message()
+
+                # Try again, in any case.
+                continue
+
+            # Step 3: Check for reformatting (mainly the case for timestamps)
             if 'reformat' in t[k]:
                 x = t[k].reformat(x)
             
+        # Success.
         t[k].answer = x
 
     return t
 
 
-@trap
 def review_answers(t:SloppyTree) -> bool:
     print("\n----------------------\n")
     for k in t:
@@ -148,6 +161,13 @@ def review_answers(t:SloppyTree) -> bool:
 
     return truthy(input("\nThese are the answers you provided. Are they OK? [y] : "))
     
+
+def truthy(text:str) -> bool:
+    """
+    Deal with all the various ways people represent the truth.
+    """
+    return text.lower() in ('y', 'yes', 't', 'true', 'ok', '1', '')
+
 
 @trap
 def slurmwriter_main(myargs:argparse.Namespace) -> int:
@@ -168,13 +188,6 @@ def slurmwriter_main(myargs:argparse.Namespace) -> int:
         f.write(code)
 
     return os.EX_OK
-
-
-def truthy(text:str) -> bool:
-    """
-    Deal with all the various ways people represent the truth.
-    """
-    return text.lower() in ('y', 'yes', 'true', 'ok', '1', '')
 
 
 if __name__ == '__main__':

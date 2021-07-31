@@ -36,7 +36,6 @@ from   sloppytree import SloppyTree
 # The netid of the user running this instance of the program.
 ###
 
-me = lambda : getpass.getuser()
 mynetid = getpass.getuser()
 
 ###
@@ -44,7 +43,6 @@ mynetid = getpass.getuser()
 # when we collect data from the user. 
 ###
 
-max_hours = 72
 
 
 def mygroups() -> Tuple[str]:
@@ -140,10 +138,11 @@ programs.gaussian.partition_choices = ('parish',) + community_partitions_compute
 #       user fails to type in anything.
 #  datatype -- int, str, float, list, etc. Effectively, these are lambda-s
 #       because the program coerces the input to this type from str.
-#  choices -- a tuple of lambda-s to check allowable values.
+#  constraints -- a tuple of lambda-s to check allowable values.
 ###
 
 dialog = SloppyTree()
+dialog.max_hours = 72
 
 dialog.username.answer = mynetid
 dialog.username.groups = mygroups() 
@@ -158,27 +157,27 @@ dialog.output.datatype = str
 dialog.program.prompt = lambda : "What program do you want to run"
 dialog.program.default = lambda : ""
 dialog.program.datatype = str
-dialog.program.choices = lambda x : not len(x) or x.lower() in programs.keys(),
+dialog.program.constraints = lambda x : not len(x) or x.lower() in programs.keys(),
 
 dialog.partition.prompt = lambda : "Name of the partition where you want to run your job"
 dialog.partition.default = lambda : 'basic'
 dialog.partition.datatype = str
-dialog.partition.choices = lambda x : x in partitions.keys(),
+dialog.partition.constraints = lambda x : x in partitions.keys(),
 
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
 dialog.account.default = lambda : f"users"
 dialog.account.datatype = str
-dialog.account.choices = lambda x : x in dialog.username.groups,
+dialog.account.constraints = lambda x : x in dialog.username.groups,
 
 dialog.datadir.prompt = lambda : "Where is your input data directory"
 dialog.datadir.default = lambda : f"{os.getenv('HOME')}"
 dialog.datadir.datatype = str
-dialog.datadir.choices = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
+dialog.datadir.constraints = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
 
 dialog.scratchdir.prompt = lambda : "Where is your scratch directory"
 dialog.scratchdir.default = lambda : f"{os.getenv('HOME')}/scratch"
 dialog.scratchdir.datatype = str
-dialog.scratchdir.choices = (
+dialog.scratchdir.constraints = (
     lambda x: os.makedirs(x, mode=0o750, exist_ok=True) or True, 
     lambda x : os.path.exists(x), 
     lambda x : os.access(x, os.R_OK|os.W_OK) 
@@ -187,26 +186,26 @@ dialog.scratchdir.choices = (
 dialog.mem.prompt = lambda : "How much memory (in GB)"
 dialog.mem.default = lambda : 16
 dialog.mem.datatype = int
-dialog.mem.choices = lambda x : 1 < x < partitions[dialog.partition.answer].ram - 7, 
+dialog.mem.constraints = lambda x : 1 < x < partitions[dialog.partition.answer].ram - 7, 
 
 dialog.cores.prompt = lambda : "How many cores"
 dialog.cores.default = lambda : 8
 dialog.cores.datatype = int
-dialog.cores.choices = lambda x : 0 < x < partitions[dialog.partition.answer].cores - 1,
+dialog.cores.constraints = lambda x : 0 < x < partitions[dialog.partition.answer].cores - 1,
 
 dialog.time.prompt = lambda : "How long should this run (in hours)"
 dialog.time.default = lambda : 1
 dialog.time.datatype = float
-dialog.time.choices = lambda x : x < max_hours,
+dialog.time.constraints = lambda x : x < dialog.max_hours,
 dialog.time.reformat = lambda x : hours_to_hms(x)
 
 dialog.start.prompt = lambda : "When do you want the job to run"
 dialog.start.default = lambda : "now"
 dialog.start.datatype = str
-dialog.start.choices = lambda x : x in ('now', 'today', 'tomorrow') or time_check(x),
+dialog.start.constraints = lambda x : x in ('now', 'today', 'tomorrow') or time_check(x),
 dialog.start.reformat = lambda x : time_check(x, True)
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
 dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
-dialog.jobfile.choices = lambda x : os.access(os.path.dirname(x), os.W_OK),
+dialog.jobfile.constraints = lambda x : os.access(os.path.dirname(x), os.W_OK),
