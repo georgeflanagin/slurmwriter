@@ -41,6 +41,7 @@ from   sloppytree import SloppyTree
 ###
 
 mynetid = getpass.getuser()
+VERSION = datetime.datetime.fromtimestamp(os.stat(__file__).st_mtime).isoformat()[:16]
 
 ###
 # These are function to support the boundary checking

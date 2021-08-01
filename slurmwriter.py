@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Slurmwriter is a simple program to help new SLURM users format
+"""
+Slurmwriter is a simple program to help new SLURM users format
 their first jobs properly. A SLURM job can be a little tedious
 to construct, and by answering a few questions, this utility
 can help you get the basics correct the first time. 
@@ -33,6 +34,7 @@ __status__ = 'Teaching example'
 __license__ = 'MIT'
 
 import argparse
+import datetime
 import getpass
 import inspect
 
@@ -41,6 +43,7 @@ import inspect
 ###
 
 from   gkfdecorators import trap
+import rules
 from   rules import dialog
 from   sloppytree import SloppyTree
 from   slurmscript import slurmscript
@@ -52,6 +55,8 @@ import utils
 
 LAMBDA = lambda:0
 OCTOTHORPE = '#'
+INTERACTIVE = not utils.script_driven()
+VERSION = datetime.datetime.fromtimestamp(os.stat(__file__).st_mtime).isoformat()[:16]
 
 @trap
 def dump_cmdline(args:argparse.ArgumentParser, return_it:bool=False) -> str:
@@ -169,7 +174,14 @@ def scrub_input(prompt_text:str) -> str:
     """
     Like input, but ditches everything after the octothorpe.
     """
-    return input(prompt_text).split(OCTOTHORPE)[0].strip()
+    global INTERACTIVE, OCTOTHORPE
+    try:
+        return input(prompt_text if INTERACTIVE else "").split(OCTOTHORPE)[0].strip()
+    except EOFError as e:
+        # In case this is being scripted, and the script ended abruptly.
+        sys.exit(os.EX_NOINPUT)
+    except KeyboardInterrupt as e:
+        sys.exit(os.EX_OK)
  
 
 def truthy(text:str) -> bool:
@@ -181,20 +193,21 @@ def truthy(text:str) -> bool:
 
 @trap
 def slurmwriter_main(myargs:argparse.Namespace) -> int:
-    global dialog
+    global dialog, INTERACTIVE, VERSION
 
-    redirected_input = utils.script_driven()
-
-    print(f"{__doc__}")
+    if INTERACTIVE:
+        print(f"slurmwriter. Version of {VERSION}")
+        print(f"      rules. Version of {rules.VERSION}")
+        print(__doc__)
 
     info = SloppyTree()
     info = get_answers(dialog, myargs)
-    if not redirected_input not review_answers(info): 
+    if INTERACTIVE and not review_answers(info): 
         print("OK. Try again.")
         sys.exit(os.EX_DATAERR)
 
     
-    print(f"Writing file {info.jobfile.answer}...")
+    INTERACTIVE and print(f"Writing file {info.jobfile.answer}...")
     code = slurmscript(info)
     with open(info.jobfile.answer, 'w+') as f:
         f.write(code)
@@ -210,7 +223,6 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
 
     myargs = parser.parse_args()
-    # dump_cmdline(myargs)
 
     try:
         sys.exit(slurmwriter_main(myargs))
