@@ -176,12 +176,17 @@ def scrub_input(prompt_text:str) -> str:
     """
     global INTERACTIVE, OCTOTHORPE
     try:
-        return input(prompt_text if INTERACTIVE else "").split(OCTOTHORPE)[0].strip()
+        result = input(prompt_text if INTERACTIVE else "").split(OCTOTHORPE)[0].strip()
+
     except EOFError as e:
         # In case this is being scripted, and the script ended abruptly.
         sys.exit(os.EX_NOINPUT)
+
     except KeyboardInterrupt as e:
         sys.exit(os.EX_OK)
+
+    if result=='EOF': sys.exit(os.EX_OK)
+    return result
  
 
 def truthy(text:str) -> bool:
@@ -200,17 +205,21 @@ def slurmwriter_main(myargs:argparse.Namespace) -> int:
         print(f"      rules. Version of {rules.VERSION}")
         print(__doc__)
 
-    info = SloppyTree()
-    info = get_answers(dialog, myargs)
-    if INTERACTIVE and not review_answers(info): 
-        print("OK. Try again.")
-        sys.exit(os.EX_DATAERR)
+    while True:
 
-    
-    INTERACTIVE and print(f"Writing file {info.jobfile.answer}...")
-    code = slurmscript(info)
-    with open(info.jobfile.answer, 'w+') as f:
-        f.write(code)
+        info = SloppyTree()
+        info = get_answers(dialog, myargs)
+        if INTERACTIVE and not review_answers(info): 
+            print("OK. Try again.")
+            sys.exit(os.EX_DATAERR)
+
+        
+        INTERACTIVE and print(f"Writing file {info.jobfile.answer}...")
+        code = slurmscript(info)
+        with open(info.jobfile.answer, 'w+') as f:
+            f.write(code)
+
+        if INTERACTIVE: break
 
     return os.EX_OK
 
