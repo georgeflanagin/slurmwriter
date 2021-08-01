@@ -107,6 +107,7 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
     from the user, interactively. Perform checks for
     each input if any checks exist.
     """
+    global INTERACTIVE
 
     # Ensure this is a user-prompt element of t. Other data in
     # t have no prompt element. 
@@ -124,6 +125,7 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
             # Not convertable to the give type.
             except ValueError as e:
                 print(f"Woops! {x} should be of type {t[k].datatype}")
+                if not INTERACTIVE: sys.exit(os.EX_DATAERR)
                 continue
                 
             # No type coercion rule present.
@@ -149,6 +151,7 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
             ###
             if not complete:
                 for message in t[k].messages: message(x)
+                if not INTERACTIVE: sys.exit(os.EX_DATAERR)
                 continue
 
             # Check for reformatting (mainly the case for timestamps)

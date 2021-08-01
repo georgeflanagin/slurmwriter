@@ -87,6 +87,14 @@ def time_check(s:str, return_str:bool=False) -> Union[str, bool]:
 
 limits = SloppyTree()
 limits.max_hours = 96
+limits.ram.leftover = 4
+limits.cores.leftover = 2
+
+params = SloppyTree()
+params.locations.programs = ('/usr/local/sw', '/opt/sw')
+params.locations.modules = ('/usr/local/sw/modules')
+params.querytool.exe = utils.dorunrun("which sinfo", return_datatype=str)
+params.querytool.opts = "-a -b -c"
 
 community_partitions_compute = ('basic', 'medium', 'large')
 community_partitions_gpu = ('ML', 'sci')
@@ -163,12 +171,13 @@ dialog.program.constraints = lambda x : not len(x) or x.lower() in programs.keys
 dialog.partition.prompt = lambda : "Name of the partition where you want to run your job"
 dialog.partition.default = lambda : 'basic'
 dialog.partition.datatype = str
-dialog.partition.constraints = lambda x : x in partitions.keys(),
+dialog.partition.constraints = lambda x : x in partitions,
 
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
 dialog.account.default = lambda : f"users"
 dialog.account.datatype = str
 dialog.account.constraints = lambda x : x in dialog.username.groups,
+dialog.account.messages = lambda x : f"{x} is not one of your groups. They are {dialog.username.groups}",
 
 dialog.datadir.prompt = lambda : "Where is your input data directory"
 dialog.datadir.default = lambda : f"{os.getenv('HOME')}"
@@ -187,18 +196,23 @@ dialog.scratchdir.constraints = (
 dialog.mem.prompt = lambda : "How much memory (in GB)"
 dialog.mem.default = lambda : 16
 dialog.mem.datatype = int
-dialog.mem.constraints = lambda x : 1 < x < partitions[dialog.partition.answer].ram - 7, 
+dialog.mem.constraints = lambda x : 1 < x < partitions[dialog.partition.answer].ram - limits.ram.leftover, 
+dialog.mem.messages = lambda x : f"In {dialog.partition.answer}, \
+the maximum amount of memory is {partitions[dialog.partition.answer].ram - limits.ram.leftover}",
 
 dialog.cores.prompt = lambda : "How many cores"
 dialog.cores.default = lambda : 8
 dialog.cores.datatype = int
-dialog.cores.constraints = lambda x : 0 < x < partitions[dialog.partition.answer].cores - 1,
+dialog.cores.constraints = lambda x : 0 < x < partitions[dialog.partition.answer].cores - limits.cores.leftover,
+dialog.cores.messages = lambda x : f"You may ask for a maximum of {partitions[dialog.partition.answer].cores - limits.cores.leftover}\
+for jobs in {dialog.partition.answer}.",
 
 dialog.time.prompt = lambda : "How long should this run (in hours)"
 dialog.time.default = lambda : 1
 dialog.time.datatype = float
 dialog.time.constraints = lambda x : x < limits.max_hours,
 dialog.time.reformat = lambda x : hours_to_hms(x)
+dialog.time.messages = lambda x : f"The maximum run time is {limits.max_hours}."
 
 dialog.start.prompt = lambda : "When do you want the job to run"
 dialog.start.default = lambda : "now"
@@ -210,9 +224,10 @@ dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
 dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
 dialog.jobfile.constraints = lambda x : os.access(os.path.dirname(x), os.W_OK),
+dialog.jobfile.messages = lambda x : f"Either {x} doesn't exist, or you cannot write to it.",
 
 # This is the catch all message if we cannot tell the user something
 # more specific.
 for k in ( _ for _ in dialog if 'prompt' in _):
     if 'messages' not in dialog[k]:
-        dialog[k].messages = lambda x : f"The value you supplied, {x}, doesn't work.",
+        dialog[k].messages = lambda x : f"The value you supplied, {x}, cannot be used here.",
