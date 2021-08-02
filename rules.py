@@ -17,6 +17,7 @@ import datetime
 import getpass
 import grp
 import pwd
+import socket
 import time
 # Putting this import first, we can run pip if we need any of the
 # packages named in the try-block.
@@ -36,119 +37,51 @@ from   sloppytree import SloppyTree
 mynetid = getpass.getuser()
 VERSION = datetime.datetime.fromtimestamp(os.stat(__file__).st_mtime).isoformat()[:16]
 
-###
-# These are function to support the boundary checking
-# when we collect data from the user. 
-###
-def mygroups() -> Tuple[str]:
-    global mynetid
-    
-    groups = [g.gr_name for g in grp.getgrall() if mynetid in g.gr_mem]
-    primary_group = pwd.getpwnam(mynetid).pw_gid
-    groups.append(grp.getgrgid(primary_group).gr_name)
-    return tuple(groups)
-    
-
-def hours_to_hms(h:float) -> str:
-    
-    days = int(h / 24)
-    h -= days * 24
-    hours = int(h)
-    h -= hours 
-    minutes = int(h * 60)
-    h -= minutes/60
-    seconds = int(h*60)
-
-    return ( f"{hours:02}:{minutes:02}:{seconds:02}" 
-        if h < 24 else 
-        f"{days}-{hours:02}:{minutes:02}:{seconds:02}" )
-
-
-def time_check(s:str, return_str:bool=False) -> Union[str, bool]:
-    """
-    This function either checks or formats the time.
-
-    s -- some string thought to represent a time of day.
-    return_str -- a flag, that when True returns the parsed and formatted time.
-        If this flag is False, then we just check if the time is valid.
-    """
-    if return_str:
-        return datetime.datetime.isoformat(dateparser.parse(s))[:16]
-    else:
-        return True if dateparser.parse(s) else False
-    
-
 limits = SloppyTree()
-limits.max_hours = 96
 limits.ram.leftover = 2
 limits.cores.leftover = 2
 
 params = SloppyTree()
 
+###
 # These two tuples must be edited for the computer where SLURM is
 # being used. There is no obvious way to find the installed software.
-params.locations.programs = ('/usr/local/sw', '/opt/sw')
-params.locations.modules = ('/usr/local/sw/modules')
+###
+params.spydur.locations = ('/usr/local/sw', '/opt/sw')
+params.urarana.locations = ('/opt','/usr/local')
+params.quark.locations = ('/opt', '/usr/local', '/opt/app')
+
+ursoftware = set((
+    'amber', 'Columbus', 'desmond',  'Eaton', 'gaussian', 
+    'ncpa', 'qchem', 'schrodinger', 'pdag',  'pdde',  
+    'pdshared', 'veritas', 'VRTSpbx', 'comsol', 'critic2', 
+    'hoomd', 'qeDsim1.2',  'matlab', 'netlogo',  'qchem',
+    'q-e',  'qe-6.5',  'R', 'vmd'
+    ))
+
+def find_software() -> SloppyTree:
+    """
+    Find the software that is installed on the current machine
+    based on the places we know to look. 
+    """
+    locations = params[socket.gethostname().split('.')[0]].locations
+    pass
+
 
 # If we cannot find the 'sinfo' program, then this is not a SLURM
 # machine, or the current user does not have SLURM utilities in
 # the PATH.
-params.querytool.opts = '-o "%50P %10c  %10m  %25f  %10G "'
+params.querytool.opts = '-o "%50P %10c  %10m  %25f  %10G %l"'
 params.querytool.exe = utils.dorunrun("which sinfo", return_datatype=str).strip()
 if not params.querytool.exe:
     sys.stderr.write('SLURM does not appear to be on this machine.')
     sys.exit(os.EX_SOFTWARE)
 
 
-def parse_sinfo() -> SloppyTree:
-    """
-    Query the current environment to get the description of the
-    cluster. Return it as a SloppyTree.
-    """
-    global params
-
-    # These options give us information about cpus, memory, and
-    # gpus on the partitions. The first line of the output
-    # is just headers.
-    cmdline = f"{params.querytool.exe} {params.querytool.opts}"
-    result = utils.dorunrun( cmdline, return_datatype=str).split('\n')[1:]
-
-    partitions = []
-    cores = []
-    memories = []
-    xtras = []
-    gpus = []
-
-    # Ignore any blank lines.
-    for line in ( _ for _ in result if _):
-        f1, f2, f3, f4, f5 = line.split()
-        partitions.append(f1)
-        cores.append(f2)
-        memories.append(f3)
-        xtras.append(f4)
-        gpus.append(f5)
-        
-    cores = dict(zip(partitions,cores))
-    memories = dict(zip(partitions,memories))
-    xtras = dict(zip(partitions,xtras))
-    gpus = dict(zip(partitions,gpus))
-
-    tree = SloppyTree()
-
-    for k, v in cores.items(): tree[k].cores = int(v)
-    for k, v in memories.items(): 
-        v = "".join(_ for _ in v if _.isdigit())
-        tree[k].ram = int(int(v)/1000)
-    for k, v in xtras.items(): tree[k].xtras = v if 'null' not in v.lower() else None
-    for k, v in gpus.items(): tree[k].gpus = v if 'null' not in v.lower() else None
-
-    return tree
-
-
 # Partitions represent where you want to run the program. It is a n-ary tree,
 # where the first layer of keys represents the partitions. Subsequent layers
 # are tree-nodes with properties of the partition.
-partitions = parse_sinfo()
+partitions = utils.parse_sinfo(params)
 all_partitions = set(( k for k in partitions ))
 
 # This is a list of condos on Spydur. It will not hurt anything to
@@ -186,7 +119,7 @@ programs.gaussian.partition_choices = all_partitions
 dialog = SloppyTree()
 
 dialog.username.answer = mynetid
-dialog.username.groups = mygroups() 
+dialog.username.groups = utils.mygroups() 
 
 dialog.jobname.prompt = lambda : "Name of your job"
 dialog.jobname.datatype = str
@@ -243,15 +176,15 @@ cores for jobs in {dialog.partition.answer}.",
 dialog.time.prompt = lambda : "How long should this run (in hours)"
 dialog.time.default = lambda : 1
 dialog.time.datatype = float
-dialog.time.constraints = lambda x : x < limits.max_hours,
-dialog.time.reformat = lambda x : hours_to_hms(x)
-dialog.time.messages = lambda x : f"The maximum run time is {limits.max_hours}.",
+dialog.time.constraints = lambda x : x <= partitions[dialog.partition.answer].max_hours,
+dialog.time.reformat = lambda x : utils.hours_to_hms(x)
+dialog.time.messages = lambda x : f"The maximum run time is {partitions[dialog.partition.answer].max_hours}.",
 
 dialog.start.prompt = lambda : "When do you want the job to run"
 dialog.start.default = lambda : "now"
 dialog.start.datatype = str
-dialog.start.constraints = lambda x : x in ('now', 'today', 'tomorrow') or time_check(x),
-dialog.start.reformat = lambda x : time_check(x, True)
+dialog.start.constraints = lambda x : x in ('now', 'today', 'tomorrow') or utils.time_check(x),
+dialog.start.reformat = lambda x : utils.time_check(x, True)
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
 dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"

@@ -18,9 +18,13 @@ if sys.version_info < min_py:
     print(f"This program requires Python {min_py[0]}.{min_py[1]}, or higher.")
     sys.exit(os.EX_SOFTWARE)
 
-import stat
-
+import datetime
+import getpass
+import grp
 import math
+import pwd
+import socket
+import stat
 import subprocess
 
 # Credits
@@ -32,6 +36,8 @@ __maintainer__ = 'George Flanagin'
 __email__ = ['me+ur@georgeflanagin.com', 'gflanagin@richmond.edu']
 __status__ = 'Teaching example'
 __license__ = 'MIT'
+
+from   sloppytree import SloppyTree
 
 
 def dorunrun(command:Union[str, list],
@@ -99,7 +105,125 @@ def dorunrun(command:Union[str, list],
         raise Exception(f"Unexpected error: {str(e)}")
 
 
+def hms_to_hours(hms:str) -> float:
+    """
+    Convert a slurm time like 2-12:00:00 to 
+    a number of hours.
+    """
+
+    try:
+        h, m, s = hms.split(':')
+    except Exception as e:
+        if hms == 'infinite': return 365*24
+        return 0
+
+    try:
+        d, h = h.split('-')
+    except Exception as e:
+        d = 0
+
+    return int(d)*24 + int(h) + int(m)/60 + int(s)/3600
+
+
+def hours_to_hms(h:float) -> str:
+    """
+    Convert a number of hours to "SLURM time."
+    """
+    
+    days = int(h / 24)
+    h -= days * 24
+    hours = int(h)
+    h -= hours 
+    minutes = int(h * 60)
+    h -= minutes/60
+    seconds = int(h*60)
+
+    return ( f"{hours:02}:{minutes:02}:{seconds:02}" 
+        if h < 24 else 
+        f"{days}-{hours:02}:{minutes:02}:{seconds:02}" )
+
+
+def mygroups() -> Tuple[str]:
+    """
+    Collect the group information for the current user, including
+    the self associated group, if any.
+    """
+    mynetid = getpass.getuser()
+    
+    groups = [g.gr_name for g in grp.getgrall() if mynetid in g.gr_mem]
+    primary_group = pwd.getpwnam(mynetid).pw_gid
+    groups.append(grp.getgrgid(primary_group).gr_name)
+    return tuple(groups)
+    
+
+def parse_sinfo(params:SloppyTree) -> SloppyTree:
+    """
+    Query the current environment to get the description of the
+    cluster. Return it as a SloppyTree.
+    """
+
+    # These options give us information about cpus, memory, and
+    # gpus on the partitions. The first line of the output
+    # is just headers.
+    cmdline = f"{params.querytool.exe} {params.querytool.opts}"
+    result = dorunrun( cmdline, return_datatype=str).split('\n')[1:]
+
+    partitions = []
+    cores = []
+    memories = []
+    xtras = []
+    gpus = []
+    times = []
+
+    # Ignore any blank lines.
+    for line in ( _ for _ in result if _):
+        f1, f2, f3, f4, f5, f6 = line.split()
+        partitions.append(f1)
+        cores.append(f2)
+        memories.append(f3)
+        xtras.append(f4)
+        gpus.append(f5)
+        times.append(f6)
+        
+    cores = dict(zip(partitions, cores))
+    memories = dict(zip(partitions, memories))
+    xtras = dict(zip(partitions, xtras))
+    gpus = dict(zip(partitions, gpus))
+    times = dict(zip(partitions, times))
+
+    tree = SloppyTree()
+
+    for k, v in cores.items(): tree[k].cores = int(v)
+    for k, v in memories.items(): 
+        v = "".join(_ for _ in v if _.isdigit())
+        tree[k].ram = int(int(v)/1000)
+    for k, v in xtras.items(): tree[k].xtras = v if 'null' not in v.lower() else None
+    for k, v in gpus.items(): tree[k].gpus = v if 'null' not in v.lower() else None
+    for k, v in times.items(): tree[k].max_hours = 24*365 if v == 'infinite' else utils.hms_to_hours(v)
+
+    return tree
+
+
 def script_driven() -> bool:
+    """
+    returns True if the input is piped or coming from an IO redirect.
+    """
 
     mode = os.fstat(0).st_mode
     return True if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else False
+
+
+def time_check(s:str, return_str:bool=False) -> Union[str, bool]:
+    """
+    This function either checks or formats the time.
+
+    s -- some string thought to represent a time of day.
+    return_str -- a flag, that when True returns the parsed and formatted time.
+        If this flag is False, then we just check if the time is valid.
+    """
+    if return_str:
+        return datetime.datetime.isoformat(dateparser.parse(s))[:16]
+    else:
+        return True if dateparser.parse(s) else False
+    
+
