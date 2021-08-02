@@ -91,39 +91,62 @@ limits.ram.leftover = 4
 limits.cores.leftover = 2
 
 params = SloppyTree()
+
+# These two tuples must be edited for the computer where SLURM is
+# being used. There is no obvious way to find the installed software.
 params.locations.programs = ('/usr/local/sw', '/opt/sw')
 params.locations.modules = ('/usr/local/sw/modules')
+
+# If we cannot find the 'sinfo' program, then this is not a SLURM
+# machine, or the current user does not have SLURM utilities in
+# the PATH.
+params.querytool.opts = '-o "%50P %10c  %10m  %25f  %10G "'
 params.querytool.exe = utils.dorunrun("which sinfo", return_datatype=str)
-params.querytool.opts = "-a -b -c"
+if not params.querytool.exe:
+    sys.stderr.write('SLURM does not appear to be on this machine.')
+    sys.exit(os.EX_SOFTWARE)
 
-community_partitions_compute = ('basic', 'medium', 'large')
-community_partitions_gpu = ('ML', 'sci')
-community_partitions_plenum = community_partitions_compute + community_partitions_gpu
-condos = ('bukach', 'diaz', 'erickson', 'johnson', 'parish', 'yang1', 'yang2', 'yangnolin')
 
-# partitions represent where you want to run the program
-partitions = SloppyTree()
+def parse_sinfo() -> SloppyTree:
+    """
+    Query the current environment to get the description of the
+    cluster. Return it as a SloppyTree.
+    """
+    global params
 
-partitions.basic.ram=384
-partitions.medium.ram=768
-partitions.large.ram=1536
-partitions.ML.ram=384
-partitions.ML.gpu.type ="A100"
-partitions.ML.gpu.count=2
-partitions.sci.ram=384
-partitions.sci.gpu.type="A40"
-partitions.sci.gpu.count=8
+    # These options give us information about cpus, memory, and
+    # gpus on the partitions. The first line of the output
+    # is just headers.
+    result = utils.dorunrun(
+        f"{params.querytool.exe} {params.querytools.opts}", 
+        return_datatype=str).split('\n')[1:]
 
-partitions.bukach.ram=384
-partitions.diaz.ram=1536
-partitions.erickson.ram=768
-partitions.johnson.ram=384
-partitions.parish.ram=768
-partitions.yang1.ram=1536
-partitions.yang2.ram=384
-partitions.yangnolin.ram=384
+    partitions = ( _[0] for x in result for _ in x.split() )
+    cores = zip(partitions, ( _[1] for x in result for _ in x.split() ) )
+    memories = zip(partitions, ( _[2] for x in result for _ in x.split() ) )
+    xtras = zip(partitions, ( _[3] for x in result for _ in x.split() ) )
+    gpus = zip(partitions, ( _[4] for x in result for _ in x.split() ) )
 
-for k in partitions: partitions[k].cores=52
+    tree = SloppyTree()
+    for k in partitions: tree[k]
+    for k, v in cores: tree[k].cores = v
+    for k, v in memories: tree[k].ram = v
+    for k, v in xtras: tree[k].xtras = v
+    for k, v in gpus: tree[k].gpus = v
+    
+    return tree
+
+# Partitions represent where you want to run the program. It is a n-ary tree,
+# where the first layer of keys represents the partitions. Subsequent layers
+# are tree-nodes with properties of the partition.
+partitions = parse_sinfo()
+all_partitions = set(( k for k in partitions ))
+
+# This is a list of condos on Spydur. It will not hurt anything to
+# leave the code in place, as the set subtraction will have no effect.
+condos = set(('bukach', 'diaz', 'erickson', 'johnson', 'parish', 'yang1', 'yang2', 'yangnolin'))
+community_partitions_plenum = all_partitions - condos
+
 
 # programs contains the user-level concepts about 
 programs = SloppyTree()
