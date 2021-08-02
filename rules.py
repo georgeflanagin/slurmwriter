@@ -101,7 +101,7 @@ params.locations.modules = ('/usr/local/sw/modules')
 # machine, or the current user does not have SLURM utilities in
 # the PATH.
 params.querytool.opts = '-o "%50P %10c  %10m  %25f  %10G "'
-params.querytool.exe = utils.dorunrun("which sinfo", return_datatype=str)
+params.querytool.exe = utils.dorunrun("which sinfo", return_datatype=str).strip()
 if not params.querytool.exe:
     sys.stderr.write('SLURM does not appear to be on this machine.')
     sys.exit(os.EX_SOFTWARE)
@@ -117,24 +117,38 @@ def parse_sinfo() -> SloppyTree:
     # These options give us information about cpus, memory, and
     # gpus on the partitions. The first line of the output
     # is just headers.
-    result = utils.dorunrun(
-        f"{params.querytool.exe} {params.querytools.opts}", 
-        return_datatype=str).split('\n')[1:]
+    cmdline = f"{params.querytool.exe} {params.querytool.opts}"
+    result = utils.dorunrun( cmdline, return_datatype=str).split('\n')[1:]
 
-    partitions = ( _[0] for x in result for _ in x.split() )
-    cores = zip(partitions, ( _[1] for x in result for _ in x.split() ) )
-    memories = zip(partitions, ( _[2] for x in result for _ in x.split() ) )
-    xtras = zip(partitions, ( _[3] for x in result for _ in x.split() ) )
-    gpus = zip(partitions, ( _[4] for x in result for _ in x.split() ) )
+    partitions = []
+    cores = []
+    memories = []
+    xtras = []
+    gpus = []
+
+    # Ignore any blank lines.
+    for line in ( _ for _ in result if _):
+        f1, f2, f3, f4, f5 = line.split()
+        partitions.append(f1)
+        cores.append(f2)
+        memories.append(f3)
+        xtras.append(f4)
+        gpus.append(f5)
+        
+    cores = dict(zip(partitions,cores))
+    memories = dict(zip(partitions,memories))
+    xtras = dict(zip(partitions,xtras))
+    gpus = dict(zip(partitions,gpus))
 
     tree = SloppyTree()
-    for k in partitions: tree[k]
-    for k, v in cores: tree[k].cores = v
-    for k, v in memories: tree[k].ram = v
-    for k, v in xtras: tree[k].xtras = v
-    for k, v in gpus: tree[k].gpus = v
-    
+
+    for k, v in cores.items(): tree[k].cores = int(v)
+    for k, v in memories.items(): tree[k].ram = int(v)/1000
+    for k, v in xtras.items(): tree[k].xtras = v if 'null' not in v.lower() else None
+    for k, v in gpus.items(): tree[k].gpus = v if 'null' not in v.lower() else None
+
     return tree
+
 
 # Partitions represent where you want to run the program. It is a n-ary tree,
 # where the first layer of keys represents the partitions. Subsequent layers
@@ -153,11 +167,11 @@ programs = SloppyTree()
 
 programs.amber20.desc="biomolecular simulation"
 programs.amber20.modules = 'amber/20', 
-programs.amber20.partition_choices = ('parish',) + community_partitions_gpu
+programs.amber20.partition_choices = set( _ for _ in partitions if partitions[_].gpus is not None ) 
 
 programs.gaussian.desc="electronic structure modeling"
 programs.gaussian.modules = 'gaussian',
-programs.gaussian.partition_choices = ('parish',) + community_partitions_compute
+programs.gaussian.partition_choices = all_partitions
 
 ###
 # Each of the trees is a decision tree for the user. Some notes about the
@@ -192,9 +206,10 @@ dialog.program.datatype = str
 dialog.program.constraints = lambda x : not len(x) or x.lower() in programs.keys(),
 
 dialog.partition.prompt = lambda : "Name of the partition where you want to run your job"
-dialog.partition.default = lambda : 'basic'
+dialog.partition.default = lambda : f"{next(iter(partitions))}"
 dialog.partition.datatype = str
 dialog.partition.constraints = lambda x : x in partitions,
+dialog.partition.messages = lambda x : f"{x} is not the name of a partition. They are {tuple(x for x in partitions)}.",
 
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
 dialog.account.default = lambda : f"users"
