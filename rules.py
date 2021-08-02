@@ -229,14 +229,14 @@ dialog.scratchdir.constraints = (
 dialog.mem.prompt = lambda : "How much memory (in GB)"
 dialog.mem.default = lambda : 16
 dialog.mem.datatype = int
-dialog.mem.constraints = lambda x : 1 < x < partitions[dialog.partition.answer].ram - limits.ram.leftover, 
+dialog.mem.constraints = lambda x : 1 < x <= partitions[dialog.partition.answer].ram - limits.ram.leftover, 
 dialog.mem.messages = lambda x : f"In {dialog.partition.answer}, \
 the maximum amount of memory is {partitions[dialog.partition.answer].ram - limits.ram.leftover}",
 
 dialog.cores.prompt = lambda : "How many cores"
 dialog.cores.default = lambda : 8
 dialog.cores.datatype = int
-dialog.cores.constraints = lambda x : 0 < x < partitions[dialog.partition.answer].cores - limits.cores.leftover,
+dialog.cores.constraints = lambda x : 0 < x <= partitions[dialog.partition.answer].cores - limits.cores.leftover,
 dialog.cores.messages = lambda x : f"You may ask for a maximum of {partitions[dialog.partition.answer].cores - limits.cores.leftover} \
 cores for jobs in {dialog.partition.answer}.",
 
@@ -245,7 +245,7 @@ dialog.time.default = lambda : 1
 dialog.time.datatype = float
 dialog.time.constraints = lambda x : x < limits.max_hours,
 dialog.time.reformat = lambda x : hours_to_hms(x)
-dialog.time.messages = lambda x : f"The maximum run time is {limits.max_hours}."
+dialog.time.messages = lambda x : f"The maximum run time is {limits.max_hours}.",
 
 dialog.start.prompt = lambda : "When do you want the job to run"
 dialog.start.default = lambda : "now"
