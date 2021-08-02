@@ -22,14 +22,7 @@ import time
 # packages named in the try-block.
 import utils
 
-try:
-    import dateparser
-except ImportError as e:
-    print("This program requires dateparser.")
-    if utils.dorunrun('pip3 install dateparser --user'):
-        import dateparser
-    else:
-        sys.exit(os.EX_SOFTWARE)
+import dateparser
 
 ###
 # Other parts of this project.
@@ -87,7 +80,7 @@ def time_check(s:str, return_str:bool=False) -> Union[str, bool]:
 
 limits = SloppyTree()
 limits.max_hours = 96
-limits.ram.leftover = 4
+limits.ram.leftover = 2
 limits.cores.leftover = 2
 
 params = SloppyTree()
@@ -143,7 +136,9 @@ def parse_sinfo() -> SloppyTree:
     tree = SloppyTree()
 
     for k, v in cores.items(): tree[k].cores = int(v)
-    for k, v in memories.items(): tree[k].ram = int(v)/1000
+    for k, v in memories.items(): 
+        v = "".join(_ for _ in v if _.isdigit())
+        tree[k].ram = int(int(v)/1000)
     for k, v in xtras.items(): tree[k].xtras = v if 'null' not in v.lower() else None
     for k, v in gpus.items(): tree[k].gpus = v if 'null' not in v.lower() else None
 
@@ -242,8 +237,8 @@ dialog.cores.prompt = lambda : "How many cores"
 dialog.cores.default = lambda : 8
 dialog.cores.datatype = int
 dialog.cores.constraints = lambda x : 0 < x < partitions[dialog.partition.answer].cores - limits.cores.leftover,
-dialog.cores.messages = lambda x : f"You may ask for a maximum of {partitions[dialog.partition.answer].cores - limits.cores.leftover}\
-for jobs in {dialog.partition.answer}.",
+dialog.cores.messages = lambda x : f"You may ask for a maximum of {partitions[dialog.partition.answer].cores - limits.cores.leftover} \
+cores for jobs in {dialog.partition.answer}.",
 
 dialog.time.prompt = lambda : "How long should this run (in hours)"
 dialog.time.default = lambda : 1

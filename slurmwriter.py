@@ -81,7 +81,7 @@ def dump_lambdas(o:Any) -> None:
     if not isinstance(o, Iterable): o = o, 
     for i, it in enumerate(o):
         if isinstance(it, type(LAMBDA)) and it.__name__ == LAMBDA.__name__:
-            print(f"{i}: {inspect.getsource(it)=}")
+            print(f"{i}: {inspect.getsource(it)}")
     
 
 @trap
@@ -150,7 +150,7 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
             # Execute the message-rules to help the user get it right next time.
             ###
             if not complete:
-                for message in t[k].messages: message(x)
+                for message in t[k].messages: print(message(x))
                 if not INTERACTIVE: sys.exit(os.EX_DATAERR)
                 continue
 
