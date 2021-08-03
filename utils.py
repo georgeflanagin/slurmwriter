@@ -185,7 +185,12 @@ def get_file_type(path:str) -> str:
     try:
         with open(expandall(path), 'rb') as f:
             shred = f.read(256)
+    except FileNotFoundError as e:
+        # Broken link
+        return None
+
     except PermissionError as e:
+        # We have execute on the directory, but not read on the file within.
         return None
 
     for k, v in filetypes.items():
