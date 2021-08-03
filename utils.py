@@ -19,6 +19,7 @@ if sys.version_info < min_py:
     sys.exit(os.EX_SOFTWARE)
 
 import datetime
+import fnmatch
 import getpass
 import grp
 import math
@@ -38,6 +39,51 @@ __status__ = 'Teaching example'
 __license__ = 'MIT'
 
 from   sloppytree import SloppyTree
+
+def all_files_in(s:str, 
+    ignore_hidden:bool=True) -> str:
+    """
+    A generator to cough up the full file names for every
+    file in a directory.
+    """
+    global HIDDENFILES
+
+    s = expandall(s)
+    for c, d, files in os.walk(s):
+        for f in files:
+            fullname = os.path.join(c, f)
+            if ignore_hidden and "/." in fullname: 
+                pass
+            else:
+                yield fullname
+
+
+def all_files_like(dir_to_search:str, 
+    fname_pattern:str,
+    ignore_hidden:bool=True) -> str:
+    """
+    A generator to find all the files in dir_to_search 
+    that match fname_pattern.
+    """
+    for f in all_files_in(dir_to_search, ignore_hidden):
+        if fnmatch.fnmatch(f, fname_pattern):
+            yield f
+        else:
+            continue
+
+
+def all_files_of_type(dir_to_search:str, 
+    file_type:str,
+    ignore_hidden:bool=True) -> str:
+    """
+    A generator to get the file names of a particular type.
+    The types are shown in the filetypes dict.
+    """
+    for f in all_files_in(dir_to_search, ignore_hidden):
+        if get_file_type(f) == file_type.upper():
+            yield f
+        else:
+            continue
 
 
 def dorunrun(command:Union[str, list],
@@ -105,6 +151,49 @@ def dorunrun(command:Union[str, list],
         raise Exception(f"Unexpected error: {str(e)}")
 
 
+def expandall(s:str) -> str:
+    """
+    Expand all the user vars into an absolute path name. If the
+    argument happens to be None, it is OK.
+    """
+    return ( "" if s is None 
+        else os.path.abspath(os.path.expandvars(os.path.expanduser(s))))
+
+
+filetypes = {
+    b"%PDF-1." : "PDF",
+    b"#%Module" : "MOD",
+    b"BZh91A" : "BZ2",
+    bytes.fromhex("FF454C46") : "ELF",
+    bytes.fromhex("1F8B") : "GZIP",
+    bytes.fromhex("FD377A585A00") : "XZ",
+    bytes.fromhex("504B0304") : "ZIP",
+    bytes.fromhex("504B0708") : "ZIP"
+    }
+
+
+def get_file_type(path:str) -> str:
+    """
+    By inspection, return the presumed type of the file located 
+    at path. Returns a three of four char file type, or None if
+    the type cannot be determined. This might be because the
+    type cannot be determined when inspected, or because it cannot 
+    be opened. 
+    """
+    global filetypes
+    
+    try:
+        with open(expandall(path), 'rb') as f:
+            shred = f.read(256)
+    except PermissionError as e:
+        return None
+
+    for k, v in filetypes.items():
+        if shred.startswith(k): return v
+
+    return "TXT" if shred.isascii() else None
+    
+    
 def hms_to_hours(hms:str) -> float:
     """
     Convert a slurm time like 2-12:00:00 to 
