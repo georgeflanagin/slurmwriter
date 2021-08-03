@@ -308,6 +308,14 @@ def parse_sinfo(params:SloppyTree) -> SloppyTree:
     return tree
 
 
+def programs_w_modules() -> str:
+    """
+    Generate the names of programs that have module files.
+    """
+    for f in all_module_files():
+        yield f.split('/modulefiles/')[-1]
+
+
 def script_driven() -> bool:
     """
     returns True if the input is piped or coming from an IO redirect.

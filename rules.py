@@ -48,7 +48,8 @@ params = SloppyTree()
 # being used. There is no obvious way to find the installed software.
 ###
 params.locations.programs = tuple( os.getenv('PATH').split(':') )
-params.modulefiles = utils.all_module_files()
+params.modulefiles = tuple(utils.all_module_files())
+params.programs = tuple(utils.programs_w_modules())
 
 
 ursoftware = set((
@@ -92,14 +93,8 @@ community_partitions_plenum = all_partitions - condos
 
 # programs contains the user-level concepts about 
 programs = SloppyTree()
-
-programs.amber20.desc="biomolecular simulation"
-programs.amber20.modules = 'amber/20', 
-programs.amber20.partition_choices = set( _ for _ in partitions if partitions[_].gpus is not None ) 
-
-programs.gaussian.desc="electronic structure modeling"
-programs.gaussian.modules = 'gaussian',
-programs.gaussian.partition_choices = all_partitions
+for p in params.programs:
+    programs[p]
 
 ###
 # Each of the trees is a decision tree for the user. Some notes about the
