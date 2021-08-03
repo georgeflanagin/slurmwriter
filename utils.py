@@ -86,6 +86,16 @@ def all_files_of_type(dir_to_search:str,
             continue
 
 
+def all_module_files() -> str:
+    """
+    This generator locates all module files that are located in
+    the directories that are members of MODULEPATH.
+    """
+    for location in os.getenv('MODULEPATH', "").split(':'):
+        for f in all_files_of_type(location, 'mod'):
+            yield f
+
+
 def dorunrun(command:Union[str, list],
     timeout:int=None,
     verbose:bool=False,

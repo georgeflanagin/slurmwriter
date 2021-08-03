@@ -47,9 +47,9 @@ params = SloppyTree()
 # These two tuples must be edited for the computer where SLURM is
 # being used. There is no obvious way to find the installed software.
 ###
-params.spydur.locations = ('/usr/local/sw', '/opt/sw')
-params.urarana.locations = ('/opt','/usr/local')
-params.quark.locations = ('/opt', '/usr/local', '/opt/app')
+params.locations.programs = tuple( os.getenv('PATH').split(':') )
+params.modulefiles = utils.all_module_files()
+
 
 ursoftware = set((
     'amber', 'Columbus', 'desmond',  'Eaton', 'gaussian', 
