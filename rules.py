@@ -94,7 +94,7 @@ community_partitions_plenum = all_partitions - condos
 # programs contains the user-level concepts about 
 programs = SloppyTree()
 for p in params.programs:
-    programs[p]
+    programs[p] = None
 
 ###
 # Each of the trees is a decision tree for the user. Some notes about the

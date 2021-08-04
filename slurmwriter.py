@@ -44,7 +44,7 @@ import inspect
 
 from   gkfdecorators import trap
 import rules
-from   rules import dialog
+from   rules import dialog, partitions, programs
 from   sloppytree import SloppyTree
 from   slurmscript import slurmscript
 import utils
@@ -201,12 +201,19 @@ def truthy(text:str) -> bool:
 
 @trap
 def slurmwriter_main(myargs:argparse.Namespace) -> int:
-    global dialog, INTERACTIVE, VERSION
+    global INTERACTIVE, VERSION
 
     if INTERACTIVE:
         print(f"slurmwriter. Version of {VERSION}")
         print(f"      rules. Version of {rules.VERSION}")
         print(__doc__)
+
+    if myargs.debug:
+        partition_names = tuple(partitions.keys())
+        program_names = tuple(programs.keys())
+        print(f"{partition_names=}\n")
+        print(f"{program_names=}\n")
+        print("\n")
 
     while True:
 
