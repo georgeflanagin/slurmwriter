@@ -306,7 +306,7 @@ def parse_sinfo(params:SloppyTree) -> SloppyTree:
         tree[k].ram = int(int(v)/1000)
     for k, v in xtras.items(): tree[k].xtras = v if 'null' not in v.lower() else None
     for k, v in gpus.items(): tree[k].gpus = v if 'null' not in v.lower() else None
-    for k, v in times.items(): tree[k].max_hours = 24*365 if v == 'infinite' else utils.hms_to_hours(v)
+    for k, v in times.items(): tree[k].max_hours = 24*365 if v == 'infinite' else hms_to_hours(v)
 
     return tree
 
