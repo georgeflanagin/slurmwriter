@@ -111,7 +111,7 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
 
     # Ensure this is a user-prompt element of t. Other data in
     # t have no prompt element. 
-    for k in ( _ for _ in t if 'prompt' in t[_]):
+    for k in ( _ for _ in t.keys() if 'prompt' in t[_]):
 
         complete = False
         while not complete:
@@ -150,7 +150,8 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
             # Execute the message-rules to help the user get it right next time.
             ###
             if not complete:
-                for message in t[k].messages: print(message(x))
+                if t[k].messages: 
+                    for message in t[k].messages: print(message(x))
                 if not INTERACTIVE: sys.exit(os.EX_DATAERR)
                 continue
 
@@ -165,10 +166,10 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
 
 
 def review_answers(t:SloppyTree) -> bool:
-    print("\n----------------------\n")
-    for k in t:
+    print("\n" + 80*"=" + "\n")
+    for k in t.keys():
         if "prompt" in t[k]:
-            print(f"{t[k].prompt()} => {t[k].answer}")
+            print(f"\t{t[k].prompt()} => {t[k].answer}")
 
     return truthy(input("\nThese are the answers you provided. Are they OK? [y] : "))
     
@@ -224,7 +225,7 @@ def slurmwriter_main(myargs:argparse.Namespace) -> int:
             sys.exit(os.EX_DATAERR)
 
         
-        INTERACTIVE and print(f"Writing file {info.jobfile.answer}...")
+        INTERACTIVE and print(f"Writing file {info.jobfile.answer}  ...")
         code = slurmscript(info)
         with open(info.jobfile.answer, 'w+') as f:
             f.write(code)

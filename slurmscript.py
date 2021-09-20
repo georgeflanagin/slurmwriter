@@ -47,9 +47,9 @@ echo "Starting at `date`"
 
 NAME={info.jobname.answer}
 
-DATADIR={info.datadir.answer}
-
-SCRATCH={info.scratchdir.answer}
+export DATADIR={info.datadir.answer}
+export SCRATCH={info.localscratchdir.answer}
+export BIGSCRATCH={info.scratchdir.answer}
 
 ########################################################################
 # Always a good idea to wipe anything from memory where it
@@ -62,17 +62,23 @@ mkdir -p $SCRATCH
 
 ########################################################################
 # Copy data from DATADIR to SCRATCH below.
+#
+# Example:  cp $DATADIR/myfile $SCRATCH/myfile
 ########################################################################
 
 
 ########################################################################
-# Run your job by adding commands below.
+# Run your job by adding commands below for 
+# {info.program.answer}. You may need to set some ENV variables,
+# or load some modules before you add the executable commands.
 ########################################################################
 
 
 ########################################################################
-# Copy output files from SCRATCH to ... local storage? ... below.
+# Copy output files from SCRATCH to big storage.
 ########################################################################
+
+cp -r $SCRATCH/* $BIGSCRATCH/.
 
  
 ########################################################################

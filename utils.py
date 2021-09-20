@@ -285,6 +285,7 @@ def parse_sinfo(params:SloppyTree) -> SloppyTree:
     # Ignore any blank lines.
     for line in ( _ for _ in result if _):
         f1, f2, f3, f4, f5, f6 = line.split()
+        if f1.endswith('*'): f1=f1[:-1]
         partitions.append(f1)
         cores.append(f2)
         memories.append(f3)
@@ -315,8 +316,23 @@ def programs_w_modules() -> str:
     """
     Generate the names of programs that have module files.
     """
-    for f in all_module_files():
-        yield f.split('/modulefiles/')[-1]
+    programs = (
+    'amber',
+    'anaconda',
+    'aws',
+    'BEASTv1.10.4',
+    'Columbus',
+    'gatk-4.2.0.0',
+    'gaussian',
+    'ImageJ',
+    'mothur',
+    'OpenMolcas',
+    'plink-1.07',
+    'qe',
+    'samtools',
+    )
+    for program in programs:
+        yield program
 
 
 def script_driven() -> bool:

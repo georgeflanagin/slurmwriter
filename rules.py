@@ -83,7 +83,7 @@ if not params.querytool.exe:
 # where the first layer of keys represents the partitions. Subsequent layers
 # are tree-nodes with properties of the partition.
 partitions = utils.parse_sinfo(params)
-all_partitions = set(( k for k in partitions ))
+all_partitions = set(( k for k in partitions.keys() ))
 
 # This is a list of condos on Spydur. It will not hurt anything to
 # leave the code in place, as the set subtraction will have no effect.
@@ -115,6 +115,10 @@ dialog = SloppyTree()
 
 dialog.username.answer = mynetid
 dialog.username.groups = utils.mygroups() 
+try:
+    dialog.username.defaultgroup = [ g for g in dialog.username.groups if "$" in g ][0] 
+except:
+    dialog.username.defaultgroup = dialog.username.groups[0]
 
 dialog.jobname.prompt = lambda : "Name of your job"
 dialog.jobname.datatype = str
@@ -127,15 +131,17 @@ dialog.program.prompt = lambda : "What program do you want to run"
 dialog.program.default = lambda : ""
 dialog.program.datatype = str
 dialog.program.constraints = lambda x : not len(x) or x.lower() in programs.keys(),
+dialog.program.messages = lambda x : f"""{x} is not a program supported by SlurmWriter. 
+    Available programs are {programs.keys()}""", 
 
 dialog.partition.prompt = lambda : "Name of the partition where you want to run your job"
-dialog.partition.default = lambda : f"{next(iter(partitions))}"
+dialog.partition.default = lambda : f"{next(iter(partitions.keys()))}"
 dialog.partition.datatype = str
 dialog.partition.constraints = lambda x : x in partitions,
-dialog.partition.messages = lambda x : f"{x} is not the name of a partition. They are {tuple(x for x in partitions)}.",
+dialog.partition.messages = lambda x : f"{x} is not the name of a partition. They are {tuple(x for x in partitions.keys())}.",
 
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
-dialog.account.default = lambda : f"users"
+dialog.account.default = lambda : f"{dialog.username.defaultgroup}"
 dialog.account.datatype = str
 dialog.account.constraints = lambda x : x in dialog.username.groups,
 dialog.account.messages = lambda x : f"{x} is not one of your groups. They are {dialog.username.groups}",
@@ -146,13 +152,14 @@ dialog.datadir.datatype = str
 dialog.datadir.constraints = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
 
 dialog.scratchdir.prompt = lambda : "Where is your scratch directory"
-dialog.scratchdir.default = lambda : f"{os.getenv('HOME')}/scratch"
+dialog.scratchdir.default = lambda : f"/scratch/{dialog.username.answer}"
 dialog.scratchdir.datatype = str
 dialog.scratchdir.constraints = (
     lambda x: os.makedirs(x, mode=0o750, exist_ok=True) or True, 
     lambda x : os.path.exists(x), 
     lambda x : os.access(x, os.R_OK|os.W_OK) 
     )
+dialog.localscratchdir.answer = f"/localscratch/{dialog.username.answer}"
 
 dialog.mem.prompt = lambda : "How much memory (in GB)"
 dialog.mem.default = lambda : 16
@@ -189,6 +196,9 @@ dialog.jobfile.messages = lambda x : f"Either {x} doesn't exist, or you cannot w
 
 # This is the catch all message if we cannot tell the user something
 # more specific.
-for k in ( _ for _ in dialog if 'prompt' in _):
+for k in ( _ for _ in dialog.keys() if 'prompt' in _):
     if 'messages' not in dialog[k]:
         dialog[k].messages = lambda x : f"The value you supplied, {x}, cannot be used here.",
+
+# print(dialog)
+# sys.exit(os.EX_OK)
