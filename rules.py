@@ -49,16 +49,28 @@ params = SloppyTree()
 ###
 params.locations.programs = tuple( os.getenv('PATH').split(':') )
 params.modulefiles = tuple(utils.all_module_files())
-params.programs = tuple(utils.programs_w_modules())
-
-
-ursoftware = set((
-    'amber', 'Columbus', 'desmond',  'Eaton', 'gaussian', 
-    'ncpa', 'qchem', 'schrodinger', 'pdag',  'pdde',  
-    'pdshared', 'veritas', 'VRTSpbx', 'comsol', 'critic2', 
-    'hoomd', 'qeDsim1.2',  'matlab', 'netlogo',  'qchem',
-    'q-e',  'qe-6.5',  'R', 'vmd'
-    ))
+params.programs = (
+    'amber',
+    'bbmap',
+    'BEAST',
+    'bedtools',
+    'bwa',
+    'cms',
+    'Columbus',
+    'gatk',
+    'gaussian',
+    'ImageJ',
+    'mothur',
+    'NAMD',
+    'OpenMolcas',
+    'picard',
+    'plink',
+    'qe',
+    'samtools',
+    'slurmwriter',
+    'varscan',
+    'vcft',
+    )
 
 def find_software() -> SloppyTree:
     """
@@ -113,6 +125,8 @@ for p in params.programs:
 
 dialog = SloppyTree()
 
+dialog.joblines = ""
+
 dialog.username.answer = mynetid
 dialog.username.groups = utils.mygroups() 
 try:
@@ -127,31 +141,31 @@ dialog.output.prompt = lambda : "Name of your job's output file"
 dialog.output.default = lambda : f"{os.getenv('HOME')}/{dialog.jobname.answer}.txt"
 dialog.output.datatype = str
 
-dialog.program.prompt = lambda : "What program do you want to run"
+dialog.program.prompt = lambda : "What program do you want to run?"
 dialog.program.default = lambda : ""
 dialog.program.datatype = str
-dialog.program.constraints = lambda x : not len(x) or x.lower() in programs.keys(),
+dialog.program.constraints = lambda x : not len(x) or x.lower() in params.programs,
 dialog.program.messages = lambda x : f"""{x} is not a program supported by SlurmWriter. 
-    Available programs are {programs.keys()}""", 
+    Available programs are {params.programs}""", 
 
-dialog.partition.prompt = lambda : "Name of the partition where you want to run your job"
-dialog.partition.default = lambda : f"{next(iter(partitions.keys()))}"
+dialog.partition.prompt = lambda : "Name of the partition where you want to run your job?"
+dialog.partition.default = lambda : f"{partitions.default_partition}"
 dialog.partition.datatype = str
 dialog.partition.constraints = lambda x : x in partitions,
 dialog.partition.messages = lambda x : f"{x} is not the name of a partition. They are {tuple(x for x in partitions.keys())}.",
 
-dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with"
+dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with?"
 dialog.account.default = lambda : f"{dialog.username.defaultgroup}"
 dialog.account.datatype = str
 dialog.account.constraints = lambda x : x in dialog.username.groups,
 dialog.account.messages = lambda x : f"{x} is not one of your groups. They are {dialog.username.groups}",
 
-dialog.datadir.prompt = lambda : "Where is your input data directory"
+dialog.datadir.prompt = lambda : "Where is your input data directory?"
 dialog.datadir.default = lambda : f"{os.getenv('HOME')}"
 dialog.datadir.datatype = str
 dialog.datadir.constraints = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
 
-dialog.scratchdir.prompt = lambda : "Where is your scratch directory"
+dialog.scratchdir.prompt = lambda : "Where is your scratch directory?"
 dialog.scratchdir.default = lambda : f"/scratch/{dialog.username.answer}"
 dialog.scratchdir.datatype = str
 dialog.scratchdir.constraints = (
@@ -161,34 +175,34 @@ dialog.scratchdir.constraints = (
     )
 dialog.localscratchdir.answer = f"/localscratch/{dialog.username.answer}"
 
-dialog.mem.prompt = lambda : "How much memory (in GB)"
+dialog.mem.prompt = lambda : "How much memory (in GB)?"
 dialog.mem.default = lambda : 16
 dialog.mem.datatype = int
 dialog.mem.constraints = lambda x : 1 < x <= partitions[dialog.partition.answer].ram - limits.ram.leftover, 
 dialog.mem.messages = lambda x : f"In {dialog.partition.answer}, \
 the maximum amount of memory is {partitions[dialog.partition.answer].ram - limits.ram.leftover}",
 
-dialog.cores.prompt = lambda : "How many cores"
+dialog.cores.prompt = lambda : "How many cores?"
 dialog.cores.default = lambda : 8
 dialog.cores.datatype = int
 dialog.cores.constraints = lambda x : 0 < x <= partitions[dialog.partition.answer].cores - limits.cores.leftover,
 dialog.cores.messages = lambda x : f"You may ask for a maximum of {partitions[dialog.partition.answer].cores - limits.cores.leftover} \
 cores for jobs in {dialog.partition.answer}.",
 
-dialog.time.prompt = lambda : "How long should this run (in hours)"
+dialog.time.prompt = lambda : "How long should this run (in hours)?"
 dialog.time.default = lambda : 1
 dialog.time.datatype = float
 dialog.time.constraints = lambda x : x <= partitions[dialog.partition.answer].max_hours,
 dialog.time.reformat = lambda x : utils.hours_to_hms(x)
 dialog.time.messages = lambda x : f"The maximum run time is {partitions[dialog.partition.answer].max_hours}.",
 
-dialog.start.prompt = lambda : "When do you want the job to run"
+dialog.start.prompt = lambda : "When do you want the job to run?"
 dialog.start.default = lambda : "now"
 dialog.start.datatype = str
 dialog.start.constraints = lambda x : x in ('now', 'today', 'tomorrow') or utils.time_check(x),
 dialog.start.reformat = lambda x : utils.time_check(x, True)
 
-dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile"
+dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile?"
 dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
 dialog.jobfile.constraints = lambda x : os.access(os.path.dirname(x), os.W_OK),

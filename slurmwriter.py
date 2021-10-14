@@ -43,6 +43,7 @@ import inspect
 ###
 
 from   gkfdecorators import trap
+from   dorunrun import dorunrun
 import rules
 from   rules import dialog, partitions, programs
 from   sloppytree import SloppyTree

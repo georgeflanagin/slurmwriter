@@ -73,6 +73,7 @@ mkdir -p $SCRATCH
 # or load some modules before you add the executable commands.
 ########################################################################
 
+{info.joblines}
 
 ########################################################################
 # Copy output files from SCRATCH to big storage.
