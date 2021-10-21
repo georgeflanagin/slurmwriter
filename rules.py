@@ -67,7 +67,6 @@ params.programs = (
     'plink',
     'qe',
     'samtools',
-    'slurmwriter',
     'varscan',
     'vcft',
     )
