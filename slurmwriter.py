@@ -37,6 +37,7 @@ import argparse
 import datetime
 import getpass
 import inspect
+import time
 
 ###
 # Parts of this project.
@@ -47,7 +48,7 @@ from   dorunrun import dorunrun
 import rules
 from   rules import dialog, partitions, programs
 from   sloppytree import SloppyTree
-from   slurmscript import slurmscript
+from   script import slurmscript
 import utils
 
 ###
@@ -162,6 +163,12 @@ def get_answers(t:SloppyTree, myargs:argparse.Namespace) -> SloppyTree:
             
         # Success.
         t[k].answer = x
+        
+        # Apply any tranformation associated with this element.
+        try:
+            t = t[k].foo(t)
+        except:
+            pass
 
     return t
 

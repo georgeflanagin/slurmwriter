@@ -19,6 +19,10 @@ __license__ = 'MIT'
 slurmscript = lambda info : f"""#!/bin/bash
 
 ###
+# This file was originally created by SLURMwriter, a tool
+# written by University of Richmond's High Performance
+# Computing group. This file created @ {info.written.foo()}
+# 
 # Note: slurm cannot see environment or shell variables. You
 # must type in the values you need. You can add them in the 
 # `sbatch` line you type in so that they are explicitly provided.
@@ -56,7 +60,10 @@ export BIGSCRATCH={info.scratchdir.answer}
 # is allocated. Add other modules here, as well.
 ########################################################################
 
+export MODULEPATH="$MODULEPATH:/usr/local/sw/modulefiles"
 module purge
+
+{info.modules}
 
 mkdir -p $SCRATCH
 
@@ -68,9 +75,9 @@ mkdir -p $SCRATCH
 
 
 ########################################################################
-# Run your job by adding commands below for 
-# {info.program.answer}. You may need to set some ENV variables,
-# or load some modules before you add the executable commands.
+# Run your job by adding commands below for {info.program.answer}. 
+# You may need to set some ENV variables, or load 
+# additional  modules before you add the executable commands.
 ########################################################################
 
 {info.joblines}

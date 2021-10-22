@@ -30,6 +30,8 @@ import dateparser
 ###
 from   sloppytree import SloppyTree
 
+def NOP(o:object): return o
+
 ###
 # The netid of the user running this instance of the program.
 ###
@@ -49,27 +51,42 @@ params = SloppyTree()
 ###
 params.locations.programs = tuple( os.getenv('PATH').split(':') )
 params.modulefiles = tuple(utils.all_module_files())
-params.programs = (
-    'amber',
-    'bbmap',
-    'BEAST',
-    'bedtools',
-    'bwa',
-    'cms',
-    'Columbus',
-    'gatk',
-    'gaussian',
-    'ImageJ',
-    'mothur',
-    'NAMD',
-    'OpenMolcas',
-    'picard',
-    'plink',
-    'qe',
-    'samtools',
-    'varscan',
-    'vcft',
-    )
+params.programs = {
+    'amber':'',
+    'bbmap':'',
+    'BEAST':'',
+    'bedtools':'',
+    'bwa':'',
+    'cms':'',
+    'Columbus':'',
+    'gatk':'',
+    'gaussian':'',
+    'ImageJ':'',
+    'mothur':'',
+    'NAMD':'',
+    'OpenMolcas':'',
+    'picard':'',
+    'plink':'',
+    'qchem':'',
+    'qe':'',
+    'samtools':'',
+    'varscan':'',
+    'vcft':''
+    }
+
+def program_basename(t:SloppyTree) -> SloppyTree:
+    if t.program.answer == "": return t
+    for p in params.programs:
+        if t.program.answer.startswith(p):
+            t.modules = f"module load {p}/{t.program.answer}"
+            return t
+    return t
+
+
+def program_launch(t:SloppyTree) -> SloppyTree:
+    t.joblines = f"{t.program.answer} {t.inputfile.answer}"
+    return t
+
 
 def find_software() -> SloppyTree:
     """
@@ -102,7 +119,7 @@ condos = set(('bukach', 'diaz', 'erickson', 'johnson', 'parish', 'yang1', 'yang2
 community_partitions_plenum = all_partitions - condos
 
 
-# programs contains the user-level concepts about 
+# programs contains the user-level concepts about the software on this cluster.
 programs = SloppyTree()
 for p in params.programs:
     programs[p] = None
@@ -125,6 +142,10 @@ for p in params.programs:
 dialog = SloppyTree()
 
 dialog.joblines = ""
+dialog.modules = ""
+dialog.written.foo = lambda : time.strftime(
+    '%Y-%m-%d %H:%M:%S', 
+    time.localtime(time.time()))
 
 dialog.username.answer = mynetid
 dialog.username.groups = utils.mygroups() 
@@ -143,9 +164,15 @@ dialog.output.datatype = str
 dialog.program.prompt = lambda : "What program do you want to run?"
 dialog.program.default = lambda : ""
 dialog.program.datatype = str
-dialog.program.constraints = lambda x : not len(x) or x.lower() in params.programs,
+dialog.program.constraints = lambda x : not len(x) or any(x.startswith(y) for y in params.programs),
 dialog.program.messages = lambda x : f"""{x} is not a program supported by SlurmWriter. 
     Available programs are {params.programs}""", 
+dialog.program.foo = program_basename
+
+dialog.inputfile.prompt = lambda : "Name of your input file"
+dialog.inputfile.default = lambda : ""
+dialog.inputfile.datatype = str
+dialog.inputfile.foo = program_launch
 
 dialog.partition.prompt = lambda : "Name of the partition where you want to run your job?"
 dialog.partition.default = lambda : f"{partitions.default_partition}"
