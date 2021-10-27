@@ -88,6 +88,17 @@ def program_launch(t:SloppyTree) -> SloppyTree:
     return t
 
 
+def program_jobfile(t:SloppyTree) -> SloppyTree:
+    global mynetid
+    data=t.jobfile.answer
+    if not data: return t
+
+    filename=f"/tmp/{mynetid}.recent"
+    with open(filename, 'w') as f:
+        f.write(t.jobfile.answer)
+    return t
+
+
 def find_software() -> SloppyTree:
     """
     Find the software that is installed on the current machine
@@ -233,6 +244,7 @@ dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer
 dialog.jobfile.datatype = str
 dialog.jobfile.constraints = lambda x : os.access(os.path.dirname(x), os.W_OK),
 dialog.jobfile.messages = lambda x : f"Either {x} doesn't exist, or you cannot write to it.",
+dialog.jobfile.foo = program_jobfile
 
 # This is the catch all message if we cannot tell the user something
 # more specific.
