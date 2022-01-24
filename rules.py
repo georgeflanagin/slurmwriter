@@ -168,15 +168,11 @@ except:
 dialog.jobname.prompt = lambda : "Name of your job"
 dialog.jobname.datatype = str
 
-dialog.output.prompt = lambda : "Name of your job's output file"
-dialog.output.default = lambda : f"{os.getenv('HOME')}/{dialog.jobname.answer}.txt"
-dialog.output.datatype = str
-
-dialog.program.prompt = lambda : "What program do you want to run?"
+dialog.program.prompt = lambda : "What program do you want to run? (skip to fill in later)"
 dialog.program.default = lambda : ""
 dialog.program.datatype = str
 dialog.program.constraints = lambda x : not len(x) or any(x.startswith(y) for y in params.programs),
-dialog.program.messages = lambda x : f"""{x} is not a program supported by SlurmWriter. 
+dialog.program.messages = lambda x : f"""{x} is not a program on Spydur. 
     Available programs are {params.programs}""", 
 dialog.program.foo = program_basename
 
@@ -189,28 +185,13 @@ dialog.partition.prompt = lambda : "Name of the partition where you want to run 
 dialog.partition.default = lambda : f"{partitions.default_partition}"
 dialog.partition.datatype = str
 dialog.partition.constraints = lambda x : x in partitions,
-dialog.partition.messages = lambda x : f"{x} is not the name of a partition. They are {tuple(x for x in partitions.keys())}.",
+dialog.partition.messages = lambda x : f"{x} is not the name of a partition. They are {tuple(_ for _ in partitions.keys())}.",
 
 dialog.account.prompt = lambda : f"What account is your user id, {mynetid}, associated with?"
 dialog.account.default = lambda : f"{dialog.username.defaultgroup}"
 dialog.account.datatype = str
 dialog.account.constraints = lambda x : x in dialog.username.groups,
 dialog.account.messages = lambda x : f"{x} is not one of your groups. They are {dialog.username.groups}",
-
-dialog.datadir.prompt = lambda : "Where is your input data directory?"
-dialog.datadir.default = lambda : f"{os.getenv('HOME')}"
-dialog.datadir.datatype = str
-dialog.datadir.constraints = lambda x : os.path.exists(x), lambda x : os.access(x, os.R_OK)
-
-dialog.scratchdir.prompt = lambda : "Where is your scratch directory?"
-dialog.scratchdir.default = lambda : f"/scratch/{dialog.username.answer}"
-dialog.scratchdir.datatype = str
-dialog.scratchdir.constraints = (
-    lambda x: os.makedirs(x, mode=0o750, exist_ok=True) or True, 
-    lambda x : os.path.exists(x), 
-    lambda x : os.access(x, os.R_OK|os.W_OK) 
-    )
-dialog.localscratchdir.answer = f"/localscratch/{dialog.username.answer}"
 
 dialog.mem.prompt = lambda : "How much memory (in GB)?"
 dialog.mem.default = lambda : 16
@@ -240,7 +221,7 @@ dialog.start.constraints = lambda x : x in ('now', 'today', 'tomorrow') or utils
 dialog.start.reformat = lambda x : utils.time_check(x, True)
 
 dialog.jobfile.prompt = lambda : "What will be the name of this new jobfile?"
-dialog.jobfile.default = lambda : f"{os.getenv('OLDPWD')}/{dialog.jobname.answer}.slurm"
+dialog.jobfile.default = lambda : f"/home/{dialog.username.answer}/{dialog.jobname.answer}.slurm"
 dialog.jobfile.datatype = str
 dialog.jobfile.constraints = lambda x : os.access(os.path.dirname(x), os.W_OK),
 dialog.jobfile.messages = lambda x : f"Either {x} doesn't exist, or you cannot write to it.",

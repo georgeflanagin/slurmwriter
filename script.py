@@ -28,73 +28,78 @@ slurmscript = lambda info : f"""#!/bin/bash
 # `sbatch` line you type in so that they are explicitly provided.
 ###
 
+###
+# Environment setup
+###
+export JOBID=$SLURM_JOB_ID
+export NETID={info.username.answer}
+export JOBNAME={info.jobname.answer}
+export DATADIR="$HOME/{info.jobname.answer}"
+export SCRATCH="/localscratch/$NETID/$JOBNAME/$JOBID"
+export BIGSCRATCH="/scratch/$NETID/$JOBNAME/$JOBID"
+
+echo DATADIR=$DATADIR
+echo SCRATCH=$SCRATCH
+echo BIGSCRATCH=$BIGSCRATCH
+
+mkdir -p $DATADIR
+mkdir -p $SCRATCH
+mkdir -p $BIGSCRATCH
+
+###
+# Invoke function as a trap on the EXIT signal to ensure
+# the node's scratch directory is clean.
+###
+clean_scratch()
+{{
+    cause=$?
+    if [[ cause != 0 ]]; then
+        echo "Killed by signal $cause" >> "$HOME/$JOBNAME.$JOBID.err"
+    else
+        echo "Normal termination." >> "$HOME/$JOBNAME.$JOBID.err"
+    fi
+    nice cp -r $SCRATCH/* $BIGSCRATCH/.
+    rm -fr $SCRATCH
+}}
+
 #SBATCH --account={info.account.answer}
 #SBATCH --begin={info.start.answer}
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user={info.username.answer}@richmond.edu
+#SBATCH --mail-user="$NETID@richmond.edu"
 #SBATCH --mem={info.mem.answer}GB
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task={info.cores.answer}
 #SBATCH --partition={info.partition.answer}
 #SBATCH --time={info.time.answer}
 
-#SBATCH -o {info.output.answer}
-#SBATCH -e {info.output.answer}.err
+#SBATCH -o "$HOME/$JOBNAME.$JOBID.out"
+#SBATCH -e "$HOME/$JOBNAME.$JOBID.err"
 
 cd $SLURM_SUBMIT_DIR
 echo "I ran on: $SLURM_NODELIST"
 echo "Starting at `date`"
 
-###
-# Environment setup
-###
-
-NAME={info.jobname.answer}
-
-export DATADIR={info.datadir.answer}
-export SCRATCH={info.localscratchdir.answer}
-export BIGSCRATCH={info.scratchdir.answer}
-
 ########################################################################
-# Always a good idea to wipe anything from memory where it
-# is allocated. Add other modules here, as well.
+# Add other modules here, as well.
 ########################################################################
 
 export MODULEPATH="$MODULEPATH:/usr/local/sw/modulefiles"
-module purge
-
 {info.modules}
-
-mkdir -p $SCRATCH
 
 ########################################################################
 # Copy data from DATADIR to SCRATCH below.
-#
-# Example:  cp $DATADIR/myfile $SCRATCH/myfile
 ########################################################################
+cp -r $DATADIR/* $SCRATCH/.
 
 
 ########################################################################
 # Run your job by adding commands below for {info.program.answer}. 
-# You may need to set some ENV variables, or load 
-# additional  modules before you add the executable commands.
 ########################################################################
+cd "$SCRATCH"
 
+trap clean_scratch EXIT
 {info.joblines}
-
-########################################################################
-# Copy output files from SCRATCH to big storage.
-########################################################################
-
-cp -r $SCRATCH/* $BIGSCRATCH/.
-
- 
-########################################################################
-# Be kind and clean the SCRATCH area.
-########################################################################
-
-rm -rf $SCRATCH
+trap "" EXIT
 
 echo "Finished at `date`"
-
 """
